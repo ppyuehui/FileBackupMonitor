@@ -1,0 +1,54 @@
+# .gitignore for FileBackupMonitor (文件备份监控助手)
+
+# Build results
+bin/
+obj/
+[Oo]bj/
+*.exe
+*.dll
+*.pdb
+*.cache
+*.suo
+
+# NuGet
+packages/
+*.nuget.props
+*.nuget.targets
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Visual Studio
+.vs/
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+*.userprefs
+*.DS_Store
+
+# Rider
+.idea/
+*.sln.iml
+
+# Logs
+*.log
+logs/
+log/
+
+# Temp
+*.tmp
+*.temp
+*.tlog
+
+# OS
+Thumbs.db
+.DS_Store
+
+# User data (sensitive - don't commit)
+AppData/
+%APPDATA%/
+%TEMP%/
+
+# WPF
+Generated\ Files/

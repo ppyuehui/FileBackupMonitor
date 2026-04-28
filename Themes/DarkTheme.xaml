@@ -1,0 +1,24 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ═══ 深色主题颜色 ═══ -->
+    <SolidColorBrush x:Key="BackgroundBrush" Color="#1E1E2E"/>
+    <SolidColorBrush x:Key="CardBrush" Color="#2A2A3C"/>
+    <SolidColorBrush x:Key="AccentBrush" Color="#7C3AED"/>
+    <SolidColorBrush x:Key="AccentHover" Color="#6D28D9"/>
+    <SolidColorBrush x:Key="AccentPress" Color="#5B21B6"/>
+    <SolidColorBrush x:Key="SuccessBrush" Color="#34D399"/>
+    <SolidColorBrush x:Key="WarningBrush" Color="#FBBF24"/>
+    <SolidColorBrush x:Key="DangerBrush" Color="#EF4444"/>
+    <SolidColorBrush x:Key="BorderBrush" Color="#3A3A50"/>
+    <SolidColorBrush x:Key="PrimaryText" Color="#E2E8F0"/>
+    <SolidColorBrush x:Key="MutedText" Color="#94A3B8"/>
+    <SolidColorBrush x:Key="SubtleText" Color="#64748B"/>
+    <SolidColorBrush x:Key="InputBackground" Color="#1E1E2E"/>
+    <SolidColorBrush x:Key="InputBorder" Color="#4A4A60"/>
+
+    <!-- 顶栏按钮 -->
+    <SolidColorBrush x:Key="AccentButtonText" Color="White"/>
+    <SolidColorBrush x:Key="AccentButtonBorder" Color="#FFFFFF33"/>
+
+</ResourceDictionary>
