@@ -2,7 +2,7 @@
 
 一个智能、高效的文件备份监控工具，自动监测指定文件夹的变化并实时备份新增/修改的文件。支持按需显示实时日志窗口，兼顾前台交互与后台稳定运行。
 
-![Platform](https://img.shields.io/badge/platform-Windows%20%2E.NET%20Framework%204.8
+![Platform](https://img.shields.io/badge/platform-Windows%20%2E.NET%20Framework%204.8)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Language](https://img.shields.io/badge/language-C%23-239120)
 
