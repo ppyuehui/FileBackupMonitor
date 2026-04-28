@@ -117,7 +117,7 @@ FileBackupMonitor/
 ### 编译运行
 ```powershell
 # 1. 克隆项目
-git clone https://github.com/yourusername/文件备份监控助手.git
+git clone https://github.com/ppyuehui/FileBackupMonitor.git
 cd 文件备份监控助手
 
 # 2. 恢复 NuGet 包（需要 Visual Studio 或 msbuild）
@@ -138,7 +138,7 @@ msbuild 文件备份监控助手.csproj /p:Configuration=Debug
 ### 克隆包含子模块的仓库
 ```powershell
 # 必须加上 --recursive
-git clone --recursive https://github.com/你的用户名/file-backup-monitor.git
+git clone --recursive https://github.com/ppyuehui/FileBackupMonitor.git
 cd file-backup-monitor
 ```
 
@@ -148,7 +148,7 @@ git submodule update --init --recursive
 ```
 
 ### Logging 库独立仓库
-- 仓库地址：https://github.com/你的用户名/Logging  
+- 仓库地址：https://github.com/ppyuehui/Logging 
 - 用途：提供 `FileLogger` 静态日志类，独立于主应用
 
 ### 首次使用

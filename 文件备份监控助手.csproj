@@ -165,6 +165,7 @@
   <ItemGroup>
     <None Include="packages.config" />
     <EmbeddedResource Include="logo.ico" />
+    <None Include="README.md" />
   </ItemGroup>
   <!-- 项目引用 -->
   <ItemGroup>
