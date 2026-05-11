@@ -1,4 +1,5 @@
 <Solution>
+  <Project Path="../AutoUpdater/AutoUpdater.csproj" />
   <Project Path="../Logging/Logging.csproj" Id="6eda32a3-5107-41ee-95f3-b6ea8f68d62e" />
   <Project Path="文件备份监控助手.csproj" Id="a1b2c3d4-e5f6-7890-abcd-ef1234567890" />
 </Solution>

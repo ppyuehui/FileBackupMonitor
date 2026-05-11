@@ -147,6 +147,7 @@
     <Compile Include="Services\BackupService.cs" />
     <Compile Include="Services\LogService.cs" />
     <Compile Include="Services\SettingsService.cs" />
+    <Compile Include="UpdateManager.cs" />
     <Compile Include="ViewModels\LogViewModel.cs" />
     <Compile Include="ViewModels\MainViewModel.cs" />
     <Compile Include="ViewModels\RelayCommand.cs" />
@@ -169,6 +170,10 @@
   </ItemGroup>
   <!-- 项目引用 -->
   <ItemGroup>
+    <ProjectReference Include="..\AutoUpdater\AutoUpdater.csproj">
+      <Project>{cf749f4e-a253-4366-8604-75affbb84fe5}</Project>
+      <Name>AutoUpdater</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Logging\Logging.csproj">
       <Project>{6eda32a3-5107-41ee-95f3-b6ea8f68d62e}</Project>
       <Name>Logging</Name>
