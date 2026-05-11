@@ -309,7 +309,7 @@ namespace FileBackupMonitor.Services
 
         private async Task BackupFileAsync(string sourcePath, string backupFolder)
         {
-            if (!File.Exists(sourcePath) || IsFileIgnored(sourcePath) || IsFolderIgnored(sourcePath) || IsTemporaryFile(sourcePath)) return;
+            if (!File.Exists(sourcePath) || IsFileIgnored(sourcePath) || IsTemporaryFile(sourcePath)) return;
             var fileName = Path.GetFileName(sourcePath);
             if (fileName != null && fileName.StartsWith("~$", StringComparison.OrdinalIgnoreCase)) return;
             if (string.IsNullOrWhiteSpace(backupFolder) || !Directory.Exists(backupFolder)) return;

@@ -383,8 +383,9 @@ namespace FileBackupMonitor.ViewModels
         /// </summary>
         public void Dispose()
         {
-            try { _service?.Dispose(); } catch { }
-            try { _maintenanceTimer?.Dispose(); } catch { }
+            //try { _service?.Dispose(); } catch { }
+            //try { _maintenanceTimer?.Dispose(); } catch { }            
+            try { Stop(); } catch { }
         } 
     }
 }
