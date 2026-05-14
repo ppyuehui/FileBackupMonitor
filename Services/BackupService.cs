@@ -433,7 +433,7 @@ namespace FileBackupMonitor.Services
                     if (deleted > 0)
                     {
                         OnCleanup?.Invoke(backupFolder, deleted);
-                        FileLogger.LogError($"清理过期备份: {backupFolder}, 删除了 {deleted} 个文件");
+                        FileLogger.LogInfo($"清理过期备份: {backupFolder}, 删除了 {deleted} 个文件");
                         OnLog?.Invoke($"🧹 清理 {deleted} 个过期备份: {backupFolder}");
                     }
                 }

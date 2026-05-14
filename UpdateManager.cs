@@ -22,7 +22,7 @@ namespace FileBackupMonitor
 
         // ==================== Gitee 配置（备用源） ====================
         private const string GITEE_REPO_OWNER = "ppyuehui";
-        private const string GITEE_REPO_NAME = "PlanTool";
+        private const string GITEE_REPO_NAME = "FileBackupMonitor";
         private const string GITEE_ACCESS_TOKEN = "4a63da8fe4818e1889fa263289202d8f";
         // ===========================================================
 

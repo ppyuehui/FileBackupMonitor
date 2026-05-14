@@ -1,10 +1,13 @@
 using System;
 using System.Drawing;
-using System.IO; // Icon
+using System.IO;
 using System.Linq;
 using System.Threading;
-using System.Windows; // WPF types
-using System.Windows.Forms; // WinForms NotifyIcon
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Forms;
+using System.Windows.Threading;
+using AutoUpdater;
 using Logging;
 using MyMessagebox;
 using static MyMessagebox.MyMessageBox;
@@ -14,17 +17,20 @@ namespace FileBackupMonitor.Views
     public partial class MainWindow : Window
     {
         private NotifyIcon _notifyIcon;
-        // 新增字段
         private bool _exitRequestedFromTray = false;
+        private readonly UpdateManager _updateManager = new UpdateManager();
+        private UpdateInfo _pendingUpdate;
 
         public MainWindow()
         {
-            FileLogger.Initialize(logSubDir: "文件备份监控助手", maxDaysToKeep: 7); // 初始化日志系统
+            FileLogger.Initialize(logSubDir: "文件备份监控助手", maxDaysToKeep: 7);
 
             InitializeComponent();
-            this.DataContext = new ViewModels.MainViewModel(); // 如果不是在 XAML 设置 DataContext，确保绑定
+            this.DataContext = new ViewModels.MainViewModel();
             InitTrayIcon();
             this.Closing += MainWindow_Closing;
+
+            CheckForUpdateAsync();
         }
 
         private void InitTrayIcon()
@@ -95,6 +101,104 @@ namespace FileBackupMonitor.Views
             // 不在这里 Dispose _notifyIcon，留给 Closing 统一处理
             System.Windows.Application.Current.Shutdown();
         }      
+
+        // ========== 自动检查更新（每天一次）==========
+        private async void CheckForUpdateAsync()
+        {
+            try
+            {
+                var updateInfo = await _updateManager.CheckForUpdateAsync();
+                Dispatcher.Invoke(() =>
+                {
+                    if (updateInfo != null)
+                    {
+                        _pendingUpdate = updateInfo;
+                        btnUpdate.Visibility = Visibility.Visible;
+                        btnUpdate.ToolTip = $"当前版本: {updateInfo.CurrentVersion}\n" +
+                                           $"最新版本: {updateInfo.LatestVersion}\n" +
+                                           $"文件大小: {updateInfo.FileSizeText}\n\n" +
+                                           $"更新说明:\n{updateInfo.ReleaseNotes}";
+                    }
+                    else
+                    {
+                        btnCheckUpdate.Content = "没有更新";
+                        btnCheckUpdate.IsEnabled = false;
+                        Task.Delay(3000).ContinueWith(_ => Dispatcher.Invoke(() =>
+                        {
+                            btnCheckUpdate.Content = "🔍 检查更新";
+                            btnCheckUpdate.IsEnabled = true;
+                        }));
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                FileLogger.LogError("检查更新失败", ex);
+            }
+        }
+
+        // ========== 手动检查更新 ==========
+        private async void CheckUpdateButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                btnCheckUpdate.IsEnabled = false;
+                btnCheckUpdate.Content = "⏳ 检查中...";
+
+                var updateInfo = await _updateManager.CheckForUpdateAsync(forceCheck: true);
+                if (updateInfo != null)
+                {
+                    _pendingUpdate = updateInfo;
+                    btnUpdate.Visibility = Visibility.Visible;
+                    btnUpdate.ToolTip = $"当前版本: {updateInfo.CurrentVersion}\n" +
+                                       $"最新版本: {updateInfo.LatestVersion}\n" +
+                                       $"文件大小: {updateInfo.FileSizeText}\n\n" +
+                                       $"更新说明:\n{updateInfo.ReleaseNotes}";
+                }
+                else
+                {
+                    btnCheckUpdate.Content = "没有更新";
+                    btnCheckUpdate.IsEnabled = false;
+                    await Task.Delay(3000);
+                    btnCheckUpdate.Content = "🔍 检查更新";
+                    btnCheckUpdate.IsEnabled = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                FileLogger.LogError("手动检查更新失败", ex);
+                MyMessageBox.Show($"检查更新失败: {ex.Message}", "错误");
+                btnCheckUpdate.Content = "🔍 检查更新";
+                btnCheckUpdate.IsEnabled = true;
+            }
+        }
+
+        // ========== 点击更新按钮 ==========
+        private async void UpdateButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_pendingUpdate == null) return;
+
+            try
+            {
+                btnUpdate.IsEnabled = false;
+                btnUpdate.Content = "⏳ 下载中...";
+
+                bool success = await _updateManager.DownloadAndUpdateAsync(_pendingUpdate, progress =>
+                {
+                    Dispatcher.Invoke(() => btnUpdate.Content = $"⏳ 下载中 {progress}%");
+                });
+
+                if (!success)
+                    MyMessageBox.Show("更新失败，请稍后重试", "错误");
+            }
+            catch (Exception ex)
+            {
+                FileLogger.LogError("更新失败", ex);
+                MyMessageBox.Show($"更新失败: {ex.Message}", "错误");
+                btnUpdate.Content = "🔄 有新版本可用！点击更新";
+                btnUpdate.IsEnabled = true;
+            }
+        }
 
         private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {

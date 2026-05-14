@@ -165,6 +165,11 @@
                             Style="{DynamicResource SecondaryButton}" Margin="0,0,8,0" Padding="16,6"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" DockPanel.Dock="Right">
+                    <Button x:Name="btnCheckUpdate" Content="🔍 检查更新" Click="CheckUpdateButton_Click"
+                            Style="{DynamicResource GhostButton}" Padding="12,6" Margin="0,0,8,0"/>
+                    <Button x:Name="btnUpdate" Content="🔄 有新版本可用！点击更新" Click="UpdateButton_Click"
+                            Visibility="Collapsed"
+                            Style="{DynamicResource SecondaryButton}" Padding="12,6" Margin="0,0,12,0"/>
                     <Button Content="📂 错误日志" Command="{Binding OpenErrorLogFolderCommand}"
                             Style="{DynamicResource GhostButton}" Padding="12,6" Margin="0,0,12,0"/>
                     <Button Content="📂 文件日志" Command="{Binding OpenLogFolderCommand}"
