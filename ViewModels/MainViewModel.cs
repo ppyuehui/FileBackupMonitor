@@ -25,6 +25,8 @@ namespace FileBackupMonitor.ViewModels
 
         public ObservableCollection<BackupLogEntry> Logs { get; } = new ObservableCollection<BackupLogEntry>();
 
+        public string WindowTitle => $"文件备份监控助手 v{UpdateManager.APP_VERSION}";
+
         private bool _uiVisible = true;
         public bool UiVisible
         {
@@ -163,7 +165,7 @@ namespace FileBackupMonitor.ViewModels
             OpenOriginalLocationCommand = new RelayCommand(obj => OpenOriginalLocation(obj as BackupLogEntry));
             OpenErrorLogFolderCommand = new RelayCommand(_ =>
             {
-                var errorLogDir = Path.Combine(Path.GetTempPath(), "文件备份监控助手" + "log");
+                var errorLogDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "文件备份监控助手", "logs");
                 OpenFolder(errorLogDir);
             });
             ThemeToggleCommand = new RelayCommand(_ =>

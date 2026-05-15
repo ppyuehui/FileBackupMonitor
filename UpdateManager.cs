@@ -28,7 +28,7 @@ namespace FileBackupMonitor
 
         // ==================== 通用配置 ====================
         /// <summary>当前版本号（每次发布新版本时手动更新，格式 YY.MM.DD）</summary>
-        public const string APP_VERSION = "26.05.08";
+        public const string APP_VERSION = "26.05.10";
         // =================================================
 
         /// <summary>获取当前版本号</summary>
