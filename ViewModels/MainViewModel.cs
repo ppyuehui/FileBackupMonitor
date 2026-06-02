@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -139,8 +139,15 @@ namespace FileBackupMonitor.ViewModels
             _logService = new Services.LogService(_settings);
             EnsureMaintenanceTimer();
 
-            try { var s = _logService.GetSummary(); TotalBackups = s.Count; TotalSize = s.TotalSize; }
-            catch (Exception ex) { FileLogger.LogError("加载摘要失败", ex); }
+            System.Threading.Tasks.Task.Run(() =>
+            {
+                try
+                {
+                    var s = _logService.ScanBackupFolders(_settings.FolderPairs);
+                    Application.Current?.Dispatcher?.Invoke(() => { TotalBackups = s.Count; TotalSize = s.TotalSize; });
+                }
+                catch (Exception ex) { FileLogger.LogError("加载摘要失败", ex); }
+            });
 
             StartCommand = new RelayCommand(_ => Start(), _ => !IsMonitoring && (_settings.FolderPairs?.Count ?? 0) > 0);
             OpenLogFolderCommand = new RelayCommand(_ => OpenLogFolder());

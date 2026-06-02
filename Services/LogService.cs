@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -182,9 +182,37 @@ namespace FileBackupMonitor.Services
             return (count, size);
         }
 
+
         /// <summary>
-        /// 清空日志文件
+        /// Scan all backup folders on disk to get real file count and total size
         /// </summary>
+        public (int Count, long TotalSize) ScanBackupFolders(List<FolderPair> folderPairs)
+        {
+            int count = 0;
+            long size = 0;
+            if (folderPairs == null) return (0, 0);
+            foreach (var pair in folderPairs)
+            {
+                var backupFolder = pair.BackupFolder;
+                if (string.IsNullOrWhiteSpace(backupFolder) || !Directory.Exists(backupFolder)) continue;
+                try
+                {
+                    foreach (var file in Directory.EnumerateFiles(backupFolder, "*", SearchOption.AllDirectories))
+                    {
+                        try
+                        {
+                            var fi = new FileInfo(file);
+                            count++;
+                            size += fi.Length;
+                        }
+                        catch { }
+                    }
+                }
+                catch (Exception ex) { FileLogger.LogError("Scan backup folder failed: " + backupFolder, ex); }
+            }
+            return (count, size);
+        }
+
         public void Clear()
         {
             try
@@ -204,3 +232,5 @@ namespace FileBackupMonitor.Services
         }
     }
 }
+
+
