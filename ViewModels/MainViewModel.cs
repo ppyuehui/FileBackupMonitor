@@ -22,6 +22,7 @@ namespace FileBackupMonitor.ViewModels
         private bool _isMonitoring;
         private Services.LogService _logService;
         private System.Threading.Timer _maintenanceTimer;
+        private DateTime _lastFullScanDate = DateTime.Now.Date;
 
         public ObservableCollection<BackupLogEntry> Logs { get; } = new ObservableCollection<BackupLogEntry>();
 
@@ -86,8 +87,8 @@ namespace FileBackupMonitor.ViewModels
         }
 
         // 兼容旧绑定
-        public string WatchFolder => _settings?.WatchFolder ?? string.Empty;
-        public string BackupFolder => _settings?.BackupFolder ?? string.Empty;
+        public string WatchFolder => _settings?.FolderPairs?.Count > 0 ? _settings.FolderPairs[0].WatchFolder : string.Empty;
+        public string BackupFolder => _settings?.FolderPairs?.Count > 0 ? _settings.FolderPairs[0].BackupFolder : string.Empty;
 
         public string StatusText
         {
@@ -124,7 +125,7 @@ namespace FileBackupMonitor.ViewModels
         public ICommand OpenFileCommand { get; }
         public ICommand OpenFileLocationCommand { get; }
         public ICommand OpenOriginalLocationCommand { get; private set; }
-        public ICommand OpenErrorLogFolderCommand { get; }
+
         public ICommand ThemeToggleCommand { get; }
         public ICommand OpenLogWindowCommand { get; }
 
@@ -139,6 +140,7 @@ namespace FileBackupMonitor.ViewModels
             _logService = new Services.LogService(_settings);
             EnsureMaintenanceTimer();
 
+            StatsText = "正在统计备份文件...";
             System.Threading.Tasks.Task.Run(() =>
             {
                 try
@@ -170,11 +172,6 @@ namespace FileBackupMonitor.ViewModels
             OpenFileCommand = new RelayCommand(obj => OpenFile(obj as BackupLogEntry));
             OpenFileLocationCommand = new RelayCommand(obj => OpenFileLocation(obj as BackupLogEntry));
             OpenOriginalLocationCommand = new RelayCommand(obj => OpenOriginalLocation(obj as BackupLogEntry));
-            OpenErrorLogFolderCommand = new RelayCommand(_ =>
-            {
-                var errorLogDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "文件备份监控助手", "logs");
-                OpenFolder(errorLogDir);
-            });
             ThemeToggleCommand = new RelayCommand(_ =>
             {
                 _settings.IsDarkTheme = !_settings.IsDarkTheme;
@@ -298,6 +295,15 @@ namespace FileBackupMonitor.ViewModels
                 });
             };
 
+            _service.OnCleanup += (folder, deleted, deletedSize) =>
+            {
+                Application.Current?.Dispatcher?.Invoke(() =>
+                {
+                    TotalBackups = Math.Max(0, TotalBackups - deleted);
+                    TotalSize = Math.Max(0, TotalSize - deletedSize);
+                });
+            };
+
             _service.OnLog += msg =>
             {
                 if (Application.Current != null)
@@ -333,7 +339,20 @@ namespace FileBackupMonitor.ViewModels
         private void EnsureMaintenanceTimer()
         {
             try { _maintenanceTimer?.Dispose(); } catch { }
-            _maintenanceTimer = new System.Threading.Timer(_ => _logService.PerformMaintenance(), null, TimeSpan.FromMinutes(5), TimeSpan.FromHours(1));
+            _maintenanceTimer = new System.Threading.Timer(_ =>
+            {
+                _logService.PerformMaintenance();
+                if ((DateTime.Now.Date - _lastFullScanDate).TotalDays >= 1)
+                {
+                    _lastFullScanDate = DateTime.Now.Date;
+                    try
+                    {
+                        var s = _logService.ScanBackupFolders(_settings.FolderPairs);
+                        Application.Current?.Dispatcher?.Invoke(() => { TotalBackups = s.Count; TotalSize = s.TotalSize; });
+                    }
+                    catch (Exception ex) { FileLogger.LogError("每日扫描失败", ex); }
+                }
+            }, null, TimeSpan.FromMinutes(5), TimeSpan.FromHours(1));
         }
 
         private void OpenLogWindow()

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -23,13 +23,15 @@ namespace FileBackupMonitor.Services
 
         // 跟踪每个文件的上次备份时间（防重复备份）
         private readonly Dictionary<string, DateTime> _lastBackupTimes = new Dictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
+        // 跟踪刚创建的文件（避免 Created + Changed 重复触发备份）
+        private readonly Dictionary<string, DateTime> _recentlyCreated = new Dictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>备份完成事件 (filePath, backupPath, size)</summary>
         public event Action<string, string, long> OnBackup;
         /// <summary>日志事件</summary>
         public event Action<string> OnLog;
         /// <summary>清理事件</summary>
-        public event Action<string, int> OnCleanup;
+        public event Action<string, int, long> OnCleanup;
 
         public BackupService(Models.AppSettings settings)
         {
@@ -198,7 +200,7 @@ namespace FileBackupMonitor.Services
 
             if (_cleanupTimer != null) { _cleanupTimer.Dispose(); _cleanupTimer = null; }
 
-            lock (_lock) { _lastBackupTimes.Clear(); _pending.Clear(); }
+            lock (_lock) { _lastBackupTimes.Clear(); _pending.Clear(); _recentlyCreated.Clear(); }
 
             OnLog?.Invoke("⏹️ 监控已停止");
         }
@@ -209,6 +211,17 @@ namespace FileBackupMonitor.Services
             {
                 if (string.IsNullOrEmpty(e.FullPath) || !File.Exists(e.FullPath) || Directory.Exists(e.FullPath)) return;
                 if (IsTemporaryFile(e.FullPath)) return;
+
+                // 跳过刚创建的文件（复制/新建），只备份真正修改过的文件
+                lock (_lock)
+                {
+                    if (_recentlyCreated.TryGetValue(e.FullPath, out var createTime))
+                    {
+                        if ((DateTime.Now - createTime).TotalSeconds < _settings.DelaySeconds)
+                            return;
+                        _recentlyCreated.Remove(e.FullPath);
+                    }
+                }
 
                 var watcher = sender as FileSystemWatcher;
                 var backupFolder = watcher != null && _watcherBackupMap.TryGetValue(watcher, out var bf) ? bf : string.Empty;
@@ -229,6 +242,7 @@ namespace FileBackupMonitor.Services
         {
             if (string.IsNullOrEmpty(e.FullPath) || !File.Exists(e.FullPath) || Directory.Exists(e.FullPath)) return;
             if (IsTemporaryFile(e.FullPath)) return;
+            lock (_lock) { _recentlyCreated[e.FullPath] = DateTime.Now; }
             OnLog?.Invoke($"📝 检测到新文件: {e.FullPath}");
         }
 
@@ -244,10 +258,10 @@ namespace FileBackupMonitor.Services
 
             OnLog?.Invoke($"🔄 检测到重命名: {e.OldFullPath} → {e.FullPath}");
 
+            // 只有 Office 文件的重命名是保存流程的一部分（临时文件重命名为原文件名），触发备份
+            // 非 Office 文件的重命名只是改名，不是修改内容，不触发备份
             if (IsOfficeFile(e.FullPath))
                 ScheduleBackup(e.FullPath, backupFolder, "Renamed(Office保存完成)", delayOverrideMs: 1000);
-            else
-                ScheduleBackup(e.FullPath, backupFolder, "Renamed");
         }
 
         private void ScheduleBackup(string fullPath, string backupFolder, string eventType, int? delayOverrideMs = null)
@@ -412,6 +426,16 @@ namespace FileBackupMonitor.Services
             }
         }
 
+        private static DateTime GetBackupDateFromName(FileInfo fi)
+        {
+            var name = Path.GetFileNameWithoutExtension(fi.Name);
+            var match = Regex.Match(name, @"_(\d{8})_\d{6}$");
+            if (match.Success && DateTime.TryParseExact(match.Groups[1].Value, "yyyyMMdd",
+                null, System.Globalization.DateTimeStyles.None, out var dt))
+                return dt;
+            return fi.CreationTime;
+        }
+
         public void CleanupOldBackups()
         {
             if (_settings.RetentionDays <= 0) return;
@@ -424,15 +448,17 @@ namespace FileBackupMonitor.Services
                     var cutoff = DateTime.Now.AddDays(-_settings.RetentionDays);
                     var files = Directory.GetFiles(backupFolder, "*", SearchOption.AllDirectories);
                     int deleted = 0;
+                    long deletedSize = 0;
                     foreach (var file in files)
                     {
                         var fi = new FileInfo(file);
-                        if (fi.LastWriteTime < cutoff) { try { fi.Delete(); deleted++; } catch { } }
+                        var fileDate = GetBackupDateFromName(fi);
+                        if (fileDate < cutoff) { try { if (fi.IsReadOnly) fi.Attributes = FileAttributes.Normal; deletedSize += fi.Length; fi.Delete(); deleted++; } catch (Exception ex) { FileLogger.LogError("删除过期备份失败: " + file, ex); } }
                     }
                     CleanEmptyDirectories(backupFolder);
                     if (deleted > 0)
                     {
-                        OnCleanup?.Invoke(backupFolder, deleted);
+                        OnCleanup?.Invoke(backupFolder, deleted, deletedSize);
                         FileLogger.LogInfo($"清理过期备份: {backupFolder}, 删除了 {deleted} 个文件");
                         OnLog?.Invoke($"🧹 清理 {deleted} 个过期备份: {backupFolder}");
                     }

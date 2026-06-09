@@ -78,7 +78,10 @@ namespace FileBackupMonitor.ViewModels
             LiveLogs.CollectionChanged += (s, e) =>
             {
                 OnPropertyChanged(nameof(LogCount));
-                //ApplyFilter();  // 重新筛选并更新 CountText
+            };
+            FilteredLogs.CollectionChanged += (s, e) =>
+            {
+                OnPropertyChanged(nameof(CountText));
             };
 
             ClearLogsCommand = new RelayCommand(_ => ClearLogs());

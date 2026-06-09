@@ -28,7 +28,7 @@ namespace FileBackupMonitor
 
         // ==================== 通用配置 ====================
         /// <summary>当前版本号（每次发布新版本时手动更新，格式 YY.MM.DD）</summary>
-        public const string APP_VERSION = "26.06.02";
+        public const string APP_VERSION = "26.06.07";
         // =================================================
 
         /// <summary>获取当前版本号</summary>
@@ -46,7 +46,7 @@ namespace FileBackupMonitor
                 AccessToken = GITEA_ACCESS_TOKEN,
                 ApiVersion = GITEA_API_VERSION
             };
-            _giteaUpdater = new UpdateService(giteaConfig);
+            _giteaUpdater = new UpdateService(giteaConfig, "文件备份监控助手");
 
             // Gitee 备用源
             var giteeConfig = UpdateConfig.CreateGitee(
@@ -55,7 +55,7 @@ namespace FileBackupMonitor
                 APP_VERSION,
                 GITEE_ACCESS_TOKEN
             );
-            _giteeUpdater = new UpdateService(giteeConfig);
+            _giteeUpdater = new UpdateService(giteeConfig, "文件备份监控助手");
         }
 
         /// <summary>

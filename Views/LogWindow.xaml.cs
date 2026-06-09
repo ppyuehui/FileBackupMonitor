@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Controls;
@@ -38,7 +38,16 @@ namespace FileBackupMonitor.Views
             Close();
         }
 
-
+        private void FilterCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_vm == null) return;
+            if (sender is System.Windows.Controls.ComboBox combo && 
+                combo.SelectedItem is System.Windows.Controls.ComboBoxItem item &&
+                int.TryParse(item.Tag?.ToString(), out int tagValue))
+            {
+                _vm.FilterType = (FileBackupMonitor.Models.LogType)tagValue;
+            }
+        }
 
         protected override void OnClosed(EventArgs e)
         {

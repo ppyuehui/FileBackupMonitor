@@ -139,7 +139,6 @@
       <DependentUpon>MessageboxYesNoCancel.xaml</DependentUpon>
     </Compile>
     <Compile Include="Converters\Converters.cs" />
-    <Compile Include="Converters\LogFilterConverter.cs" />
     <Compile Include="Models\AppSettings.cs" />
     <Compile Include="Models\BackupLogEntry.cs" />
     <Compile Include="Models\LogEntry.cs" />

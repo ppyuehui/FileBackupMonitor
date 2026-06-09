@@ -126,20 +126,27 @@ namespace FileBackupMonitor.Services
             var list = new List<BackupLogEntry>();
             try
             {
-                // 如果日志文件不存在，返回空列表
                 if (!File.Exists(_logFile)) return list;
 
-                // 使用 ReadAllLines 然后取最后 max 行，比 ReadLines + Reverse 更可靠
-               
-                var allLines = File.ReadAllLines(_logFile);
-                var startIndex = Math.Max(0, allLines.Length - max);
+                var queue = new Queue<string>();
+                using (var fs = new FileStream(_logFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                using (var sr = new StreamReader(fs))
+                {
+                    string line;
+                    while ((line = sr.ReadLine()) != null)
+                    {
+                        queue.Enqueue(line);
+                        if (queue.Count > max)
+                            queue.Dequeue();
+                    }
+                }
 
-                // 从后往前遍历，这样最新的日志会在列表前面
-                for (int i = allLines.Length - 1; i >= startIndex; i--)
+                var lines = queue.ToArray();
+                for (int i = lines.Length - 1; i >= 0; i--)
                 {
                     try
                     {
-                        var e = JsonSerializer.Deserialize<BackupLogEntry>(allLines[i], 
+                        var e = JsonSerializer.Deserialize<BackupLogEntry>(lines[i],
                             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                         if (e != null) list.Add(e);
                     }

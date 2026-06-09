@@ -21,6 +21,7 @@
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="📁 文件备份监控" FontSize="20" FontWeight="Bold"
                                Foreground="White" VerticalAlignment="Center"/>
+                    <TextBlock Text="——辉哥出品" Foreground="LightGray" FontSize="12" Margin="8,10,0,0"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <Button Content="{Binding ThemeToggleText}" Command="{Binding ThemeToggleCommand}"
@@ -170,9 +171,7 @@
                     <Button x:Name="btnUpdate" Content="🔄 有新版本可用！点击更新" Click="UpdateButton_Click"
                             Visibility="Collapsed"
                             Style="{DynamicResource SecondaryButton}" Padding="12,6" Margin="0,0,12,0"/>
-                    <Button Content="📂 错误日志" Command="{Binding OpenErrorLogFolderCommand}"
-                            Style="{DynamicResource GhostButton}" Padding="12,6" Margin="0,0,12,0"/>
-                    <Button Content="📂 文件日志" Command="{Binding OpenLogFolderCommand}"
+                    <Button Content="📂 日志文件夹" Command="{Binding OpenLogFolderCommand}"
                             Style="{DynamicResource GhostButton}" Padding="12,6" Margin="0,0,12,0"/>
                     <Button Content="{Binding RecentLoadText}" Command="{Binding LoadRecentLogsCommand}"
                             Style="{DynamicResource GhostButton}" Padding="12,6" Margin="0,0,12,0" VerticalAlignment="Center"/>
