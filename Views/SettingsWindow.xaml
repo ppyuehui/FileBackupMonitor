@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:FileBackupMonitor.ViewModels"
-        Title="设置" Height="740" Width="620"
+        Title="设置" Height="840" Width="620"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         Background="{DynamicResource BackgroundBrush}">
@@ -161,6 +161,129 @@
                            Foreground="{DynamicResource SubtleText}" FontSize="11" Margin="0,0,0,6"/>
                 <TextBox Text="{Binding IgnoredFoldersText, UpdateSourceTrigger=PropertyChanged}"
                          Style="{DynamicResource DarkTextBox}" TextWrapping="Wrap" Margin="0,0,0,16"/>
+
+                <!-- ═══ 文件格式扫描 ═══ -->
+                <Separator Background="{DynamicResource BorderBrush}" Margin="0,0,0,16"/>
+                <Grid Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="文件格式监控" Foreground="{DynamicResource PrimaryText}" FontWeight="Medium"/>
+                        <TextBlock Text="扫描监控文件夹中的所有格式，勾选=监控，取消勾选=忽略"
+                                   Foreground="{DynamicResource SubtleText}" FontSize="11" TextWrapping="Wrap"/>
+                    </StackPanel>
+                    <Button Grid.Column="1" Content="🔍 扫描" Command="{Binding ScanExtensionsCommand}"
+                            Style="{DynamicResource SecondaryButton}" Padding="14,6" VerticalAlignment="Center"/>
+                </Grid>
+
+                <TextBlock Text="{Binding ExtensionScanStatus}" Foreground="{DynamicResource SubtleText}"
+                           FontSize="11" Margin="0,0,0,6"/>
+
+                <!-- 分类快捷按钮 -->
+                <WrapPanel Margin="0,0,0,8">
+                    <Button Content="📄 文档" Command="{Binding ApplyCategoryCommand}" CommandParameter="文档"
+                            Padding="10,4" Margin="0,0,4,4" FontSize="11"
+                            Foreground="{DynamicResource PrimaryText}" BorderThickness="1"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            Background="{Binding ActiveCategories, Converter={StaticResource CategoryToBrush}, ConverterParameter=文档}"/>
+                    <Button Content="🖼 图片" Command="{Binding ApplyCategoryCommand}" CommandParameter="图片"
+                            Padding="10,4" Margin="0,0,4,4" FontSize="11"
+                            Foreground="{DynamicResource PrimaryText}" BorderThickness="1"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            Background="{Binding ActiveCategories, Converter={StaticResource CategoryToBrush}, ConverterParameter=图片}"/>
+                    <Button Content="💻 源码" Command="{Binding ApplyCategoryCommand}" CommandParameter="源码"
+                            Padding="10,4" Margin="0,0,4,4" FontSize="11"
+                            Foreground="{DynamicResource PrimaryText}" BorderThickness="1"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            Background="{Binding ActiveCategories, Converter={StaticResource CategoryToBrush}, ConverterParameter=源码}"/>
+                    <Button Content="📦 压缩包" Command="{Binding ApplyCategoryCommand}" CommandParameter="压缩包"
+                            Padding="10,4" Margin="0,0,4,4" FontSize="11"
+                            Foreground="{DynamicResource PrimaryText}" BorderThickness="1"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            Background="{Binding ActiveCategories, Converter={StaticResource CategoryToBrush}, ConverterParameter=压缩包}"/>
+                    <Button Content="⚙️ 可执行文件" Command="{Binding ApplyCategoryCommand}" CommandParameter="可执行文件"
+                            Padding="10,4" Margin="0,0,4,4" FontSize="11"
+                            Foreground="{DynamicResource PrimaryText}" BorderThickness="1"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            Background="{Binding ActiveCategories, Converter={StaticResource CategoryToBrush}, ConverterParameter=可执行文件}"/>
+                    <Button Content="🎵 音视频" Command="{Binding ApplyCategoryCommand}" CommandParameter="音视频"
+                            Padding="10,4" Margin="0,0,4,4" FontSize="11"
+                            Foreground="{DynamicResource PrimaryText}" BorderThickness="1"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            Background="{Binding ActiveCategories, Converter={StaticResource CategoryToBrush}, ConverterParameter=音视频}"/>
+                    <Button Content="🎨 设计软件" Command="{Binding ApplyCategoryCommand}" CommandParameter="常用设计软件"
+                            Padding="10,4" Margin="0,0,4,4" FontSize="11"
+                            Foreground="{DynamicResource PrimaryText}" BorderThickness="1"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            Background="{Binding ActiveCategories, Converter={StaticResource CategoryToBrush}, ConverterParameter=常用设计软件}"/>
+                    <Button Content="🗑 临时文件" Command="{Binding ApplyCategoryCommand}" CommandParameter="临时文件"
+                            Padding="10,4" Margin="0,0,4,4" FontSize="11"
+                            Foreground="{DynamicResource PrimaryText}" BorderThickness="1"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            Background="{Binding ActiveCategories, Converter={StaticResource CategoryToBrush}, ConverterParameter=临时文件}"/>
+                </WrapPanel>
+
+                <Border Background="{DynamicResource InputBackground}" CornerRadius="6"
+                        BorderBrush="{DynamicResource InputBorder}" BorderThickness="1"
+                        Padding="2" Margin="0,0,0,8" MaxHeight="240">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <!-- 标题行 -->
+                        <Grid Grid.Row="0" Margin="8,6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="36"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="70"/>
+                            </Grid.ColumnDefinitions>
+                            <CheckBox Grid.Column="0" IsChecked="{Binding AllExtensionsChecked}"
+                                      Command="{Binding ToggleAllExtensionsCommand}"
+                                      ToolTip="全选/全不选" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="扩展名" Foreground="{DynamicResource MutedText}"
+                                       FontWeight="Medium" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="2" Text="文件数" Foreground="{DynamicResource MutedText}"
+                                       FontWeight="Medium" VerticalAlignment="Center" HorizontalAlignment="Right"
+                                       FontFamily="Consolas" Margin="0,0,8,0"/>
+                        </Grid>
+                        <Border Grid.Row="0" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" VerticalAlignment="Bottom"/>
+                        <!-- 数据行 -->
+                        <ListBox Grid.Row="1" ItemsSource="{Binding Extensions}"
+                                 Background="Transparent" BorderThickness="0"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="8,3" Height="26">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="36"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="70"/>
+                                        </Grid.ColumnDefinitions>
+                                        <CheckBox Grid.Column="0" IsChecked="{Binding IsMonitored, Mode=TwoWay}"
+                                                  VerticalAlignment="Center" HorizontalAlignment="Left"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding Extension}"
+                                                   Foreground="{DynamicResource PrimaryText}" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding Count}"
+                                                   Foreground="{DynamicResource MutedText}" VerticalAlignment="Center"
+                                                   HorizontalAlignment="Right" FontFamily="Consolas"
+                                                   Margin="0,0,8,0"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
+                </Border>
+
+                <!-- 排序按钮 -->
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                    <Button Content="按勾选排序" Command="{Binding SortByCheckedCommand}"
+                            Style="{DynamicResource GhostButton}" Padding="10,4" Margin="0,0,4,0" FontSize="11"/>
+                    <Button Content="按扩展名排序" Command="{Binding SortByExtensionCommand}"
+                            Style="{DynamicResource GhostButton}" Padding="10,4" FontSize="11"/>
+                </StackPanel>
                 <!-- 底部说明 -->
                 <Border Background="{DynamicResource InputBackground}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="4" Margin="0,0,0,16" Padding="10,8">
                     <StackPanel>

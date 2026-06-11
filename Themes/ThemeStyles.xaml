@@ -7,6 +7,7 @@
     <conv:StringNotEmptyConverter x:Key="StringNotEmpty"/>
     <BooleanToVisibilityConverter x:Key="BoolToVis"/>
     <conv:ZeroToVisibleConverter x:Key="ZeroToVisible"/>
+    <conv:CategoryToBrushConverter x:Key="CategoryToBrush"/>
 
     <!-- ═══ 基础控件 ═══ -->
     <Style TargetType="Window">
