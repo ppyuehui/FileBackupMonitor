@@ -13,18 +13,18 @@ using Logging;
 using Microsoft.Win32;
 using MyMessagebox;
 using FileBackupMonitor.Models;
+using FileBackupMonitor.Views;
 
 namespace FileBackupMonitor.ViewModels
 {
     /// <summary>
     /// 文件夹对的 UI 表示
     /// </summary>
-    public class FolderPairItem : INotifyPropertyChanged
+    public class FolderPairItem
     {
         public string WatchFolder { get; set; }
         public string BackupFolder { get; set; }
         public string DisplayText => (WatchFolder + "  →  " +  BackupFolder);
-        public event PropertyChangedEventHandler PropertyChanged;
     }
 
     /// <summary>
@@ -49,14 +49,14 @@ namespace FileBackupMonitor.ViewModels
         private readonly LogService _logService;
         public Models.AppSettings Settings { get; }
 
-        public string _ignorePatternsText;
+        private string _ignorePatternsText;
         public string IgnorePatternsText
         {
             get => _ignorePatternsText;
             set { _ignorePatternsText = value; OnPropertyChanged(); }
         }
 
-        public string _ignoredFoldersText;
+        private string _ignoredFoldersText;
         public string IgnoredFoldersText
         {
             get => _ignoredFoldersText;
@@ -84,6 +84,23 @@ namespace FileBackupMonitor.ViewModels
         public ICommand SortByCheckedCommand { get; }
         public ICommand SortByExtensionCommand { get; }
         public ICommand ApplyCategoryCommand { get; }
+        public ICommand EditCategoryCommand { get; }
+        public ICommand RestoreDefaultExcludeCommand { get; }
+        public ICommand ClearIncludeCommand { get; }
+
+        private static readonly List<string> DefaultExcludePatterns = new List<string>
+        {
+            "*.temp", "*.tmp", "*.tgz", "*.his", "*.for", "*.appdf", "*.def",
+            "*.sor", "*.sin", "*.scr", "*.rp", "*.prd", "*.nol", "*.nin",
+            "*.jnl", "*.itd", "*.inx", "*.inm", "*.in", "*.ikc", "*.gen",
+            "*.dyl", "*.dfm", "*.cod", "*.apprj", "*.co1", "*.co2", "*.edf",
+            "*.nis", "*.ia1", "*.sum", "*.bks", "*.ia2", "*.ads", "*.dwl",
+            "*.dwl2", "*.adv", "*.plf", "*.rp1", "*.rp2", "*.in0", "*.msh",
+            "*.odi", "*.bk$", "*.bak",
+            "*.asd", "*.xlk", "*.wbk", "~$*",
+            "*.dll", "*.exe", "*.pdb", "*.pyc", "*.class", "*.o", "*.obj",
+            "Thumbs.db", ".DS_Store",
+        };
 
         private string _activeCategories = "";
         public string ActiveCategories
@@ -91,6 +108,78 @@ namespace FileBackupMonitor.ViewModels
             get => _activeCategories;
             set { _activeCategories = value; OnPropertyChanged(); }
         }
+
+        private bool _isExcludeMode = true;
+        public bool IsExcludeMode
+        {
+            get => _isExcludeMode;
+            set
+            {
+                if (_isExcludeMode == value) return;
+                SaveCurrentPatternsToList();
+                _isExcludeMode = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(IsIncludeMode));
+                LoadPatternsFromList();
+            }
+        }
+        public bool IsIncludeMode
+        {
+            get => !_isExcludeMode;
+            set
+            {
+                var newExclude = !value;
+                if (_isExcludeMode == newExclude) return;
+                SaveCurrentPatternsToList();
+                _isExcludeMode = newExclude;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(IsExcludeMode));
+                LoadPatternsFromList();
+            }
+        }
+
+        /// <summary>将当前 IgnorePatternsText 保存到对应模式的列表</summary>
+        private void SaveCurrentPatternsToList()
+        {
+            var list = ParsePatterns(IgnorePatternsText);
+            if (_isExcludeMode)
+                _excludePatterns = list;
+            else
+                _includePatterns = list;
+        }
+
+        /// <summary>从当前模式的列表加载到 IgnorePatternsText</summary>
+        private void LoadPatternsFromList()
+        {
+            var list = _isExcludeMode ? _excludePatterns : _includePatterns;
+            IgnorePatternsText = string.Join(", ", list);
+        }
+
+        /// <summary>解析逗号分隔的模式文本</summary>
+        private static List<string> ParsePatterns(string text)
+        {
+            return (text ?? "")
+                .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(x => x.Trim())
+                .Where(x => !string.IsNullOrEmpty(x))
+                .ToList();
+        }
+
+        /// <summary>分类定义（可编辑）</summary>
+        private readonly Dictionary<string, List<string>> _categoryDefinitions = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["文档"] = new List<string> { ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".pdf", ".txt", ".rtf", ".csv", ".odt", ".ods", ".odp", ".wps", ".et", ".dps", ".md", ".log", ".ini", ".cfg", ".conf", ".properties" },
+            ["图片"] = new List<string> { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".ico", ".tiff", ".tif", ".webp", ".svg", ".psd", ".ai", ".raw", ".cr2", ".nef", ".heic", ".heif", ".eps", ".emf", ".wmf", ".pcx", ".tga", ".dds" },
+            ["源码"] = new List<string> { ".cs", ".vb", ".js", ".ts", ".py", ".java", ".c", ".cpp", ".h", ".hpp", ".csproj", ".sln", ".xaml", ".xml", ".json", ".yaml", ".yml", ".html", ".css", ".sql", ".sh", ".bat", ".ps1", ".go", ".rs", ".swift", ".kt", ".rb", ".php", ".vue", ".jsx", ".tsx", ".scss", ".less", ".sass" },
+            ["压缩包"] = new List<string> { ".zip", ".rar", ".7z", ".iso" },
+            ["可执行文件"] = new List<string> { ".msi", ".com", ".cmd" },
+            ["音视频"] = new List<string> { ".mp3", ".mp4", ".wav", ".avi", ".mkv", ".flac", ".aac", ".ogg", ".wma", ".mov", ".wmv", ".flv", ".m4a", ".m4v", ".webm", ".3gp", ".rmvb", ".ts" },
+            ["设计软件"] = new List<string> { ".psd", ".ai", ".sketch", ".dwg", ".dxf", ".rft" },
+            ["工程软件"] = new List<string> { ".apw", ".apwz", ".prz", ".dwg", ".htri", ".edr", ".eddx", ".sulcol", ".kgt" },
+            ["辉哥软件"] = new List<string> { ".hui", ".huix", ".huij", ".huiw", ".az", ".rs" },
+            ["数据库"] = new List<string> { ".db", ".sqlite", ".sqlite3", ".mdb", ".accdb", ".sql", ".mdf", ".ldf", ".dbf", ".gdb" },
+            ["临时文件"] = new List<string> { ".cache", ".swp", ".old", ".orig", ".sav", ".autosave" },
+        };
 
         private string _batchInputText = "";
         public string BatchInputText
@@ -123,8 +212,12 @@ namespace FileBackupMonitor.ViewModels
             set { _extensionScanStatus = value; OnPropertyChanged(); }
         }
 
-        private string _lastClickedCategory = "";
         private readonly HashSet<string> _activeCategorySet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>排除模式下的扩展名列表</summary>
+        private List<string> _excludePatterns;
+        /// <summary>包含模式下的扩展名列表</summary>
+        private List<string> _includePatterns;
 
         public SettingsViewModel(Models.AppSettings source, LogService logService = null)
         {
@@ -139,7 +232,9 @@ namespace FileBackupMonitor.ViewModels
                 MinimizeToTray = source.MinimizeToTray,
                 IncludeSubfolders = source.IncludeSubfolders,
                 IsDarkTheme = source.IsDarkTheme,
+                FilterMode = source.FilterMode,
                 IgnorePatterns = new List<string>(source.IgnorePatterns),
+                IncludePatterns = new List<string>(source.IncludePatterns),
                 IgnoredFolders = new List<string>(source.IgnoredFolders),
                 RecentLogCount = source.RecentLogCount,
                 StartWithWindows = source.StartWithWindows,
@@ -148,14 +243,30 @@ namespace FileBackupMonitor.ViewModels
                 MaxBackupLogs = source.MaxBackupLogs
             };
 
+            // 初始化两套扩展名列表
+            _excludePatterns = new List<string>(source.IgnorePatterns);
+            _includePatterns = new List<string>(source.IncludePatterns);
+
+            // 先设置模式，再加载文本（避免 setter 中的 early return 导致数据丢失）
+            _isExcludeMode = source.FilterMode == Models.FilterMode.Exclude;
+
             foreach (var p in source.FolderPairs)
             {
                 Settings.FolderPairs.Add(new FolderPair { WatchFolder = p.WatchFolder, BackupFolder = p.BackupFolder });
                 FolderPairs.Add(new FolderPairItem { WatchFolder = p.WatchFolder, BackupFolder = p.BackupFolder });
             }
 
-            IgnorePatternsText = string.Join(", ", Settings.IgnorePatterns);
+            // 根据当前模式加载对应的扩展名文本
+            var currentPatterns = IsExcludeMode ? _excludePatterns : _includePatterns;
+            IgnorePatternsText = string.Join(", ", currentPatterns);
             IgnoredFoldersText = string.Join(", ", Settings.IgnoredFolders);
+
+            // 确保两个属性都触发通知，让 RadioButton 正确选中
+            OnPropertyChanged(nameof(IsExcludeMode));
+            OnPropertyChanged(nameof(IsIncludeMode));
+
+            // 检查并修正开机自启注册表路径
+            SyncAutoStartRegistry();
 
             // 添加一对
             AddPairCommand = new RelayCommand(_ =>
@@ -185,14 +296,6 @@ namespace FileBackupMonitor.ViewModels
             {
                 if (SelectedPair != null) FolderPairs.Remove(SelectedPair);
             }, _ => SelectedPair != null);
-
-            //// 清空全部
-            //ClearAllPairsCommand = new RelayCommand(_ =>
-            //{
-            //    if (FolderPairs.Count == 0) return;
-            //    if (MyMessageBox.Show($"确定清空全部 {FolderPairs.Count} 对文件夹？", "确认") == true)
-            //        FolderPairs.Clear();
-            //}, _ => FolderPairs.Count > 0);
 
             // 批量导入
             BatchImportCommand = new RelayCommand(_ =>
@@ -268,29 +371,32 @@ namespace FileBackupMonitor.ViewModels
                                     if (allExtensions.ContainsKey(ext)) allExtensions[ext]++;
                                     else allExtensions[ext] = 1;
                                 }
-                                catch { }
+                                catch (Exception ex) { FileLogger.LogError("获取文件扩展名失败: " + file, ex); }
                             }
                         }
-                        catch { }
+                        catch (Exception ex) { FileLogger.LogError("扫描文件夹失败: " + watchFolder, ex); }
                     }
 
-                    var ignoredExts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                    foreach (var pattern in Settings.IgnorePatterns)
+                var ignoredExts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                var scanPatterns = _isExcludeMode ? _excludePatterns : _includePatterns;
+                foreach (var pattern in scanPatterns)
+                {
+                    var t = pattern.Trim();
+                    if (t.StartsWith("*.")) ignoredExts.Add(t.Substring(1));
+                    else if (t.StartsWith("*")) ignoredExts.Add(t.Substring(1));
+                }
+
+                var result = allExtensions
+                    .OrderByDescending(x => x.Value)
+                    .Select(x => new ExtensionItem
                     {
-                        var t = pattern.Trim();
-                        if (t.StartsWith("*.")) ignoredExts.Add(t.Substring(1));
-                        else if (t.StartsWith("*")) ignoredExts.Add(t.Substring(1));
-                    }
-
-                    var result = allExtensions
-                        .OrderByDescending(x => x.Value)
-                        .Select(x => new ExtensionItem
-                        {
-                            Extension = x.Key,
-                            Count = x.Value,
-                            IsMonitored = !ignoredExts.Contains(x.Key) && !ignoredExts.Contains("*" + x.Key)
-                        })
-                        .ToList();
+                        Extension = x.Key,
+                        Count = x.Value,
+                        IsMonitored = _isExcludeMode
+                            ? !ignoredExts.Contains(x.Key) && !ignoredExts.Contains("*" + x.Key)
+                            : ignoredExts.Contains(x.Key) || ignoredExts.Contains("*" + x.Key)
+                    })
+                    .ToList();
 
                     Application.Current.Dispatcher.Invoke(() =>
                     {
@@ -332,30 +438,13 @@ namespace FileBackupMonitor.ViewModels
             {
                 var category = param as string;
                 if (string.IsNullOrEmpty(category)) return;
+                if (!_categoryDefinitions.ContainsKey(category)) return;
+                var target = new HashSet<string>(_categoryDefinitions[category], StringComparer.OrdinalIgnoreCase);
 
-                var categories = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase)
-                {
-                    ["文档"] = new HashSet<string> { ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".pdf", ".txt", ".rtf", ".csv", ".odt", ".ods", ".odp", ".wps", ".et", ".dps" },
-                    ["图片"] = new HashSet<string> { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".ico", ".tiff", ".tif", ".webp", ".svg", ".psd", ".ai", ".raw", ".cr2", ".nef", ".heic", ".heif" },
-                    ["源码"] = new HashSet<string> { ".cs", ".vb", ".js", ".ts", ".py", ".java", ".c", ".cpp", ".h", ".hpp", ".csproj", ".sln", ".xaml", ".xml", ".json", ".yaml", ".yml", ".html", ".css", ".sql", ".sh", ".bat", ".ps1" },
-                    ["压缩包"] = new HashSet<string> { ".zip", ".rar", ".7z", ".tar", ".gz", ".bz2", ".xz", ".tgz", ".iso" },
-                    ["可执行文件"] = new HashSet<string> { ".exe", ".dll", ".msi", ".com", ".bat", ".cmd", ".scr" },
-                    ["音视频"] = new HashSet<string> { ".mp3", ".mp4", ".wav", ".avi", ".mkv", ".flac", ".aac", ".ogg", ".wma", ".mov", ".wmv", ".flv" },
-                    ["常用设计软件"] = new HashSet<string> { ".apw", ".apwz", ".prz", ".psd", ".ai", ".indd", ".sketch", ".fig", ".xd", ".dwg", ".dxf", ".rvt", ".rfa", ".rte", ".rft", ".plf", ".edp", ".edf", ".nis", ".sin" },
-                    ["临时文件"] = new HashSet<string> { ".tmp", ".temp", ".bak", ".log", ".cache", ".swp" },
-                };
-
-                if (!categories.ContainsKey(category)) return;
-                var target = categories[category];
-
-                // 切换：如果该分类已激活则取消，否则激活
                 bool activate = !_activeCategorySet.Contains(category);
-                if (activate)
-                    _activeCategorySet.Add(category);
-                else
-                    _activeCategorySet.Remove(category);
+                if (activate) _activeCategorySet.Add(category);
+                else _activeCategorySet.Remove(category);
 
-                // 更新 ActiveCategories 字符串（触发按钮颜色变化）
                 ActiveCategories = string.Join(",", _activeCategorySet);
 
                 foreach (var item in Extensions)
@@ -365,20 +454,62 @@ namespace FileBackupMonitor.ViewModels
                 }
             });
 
+            // 右键编辑分类扩展名
+            EditCategoryCommand = new RelayCommand(param =>
+            {
+                var category = param as string;
+                if (string.IsNullOrEmpty(category)) return;
+                if (!_categoryDefinitions.ContainsKey(category)) return;
+
+                var currentExts = _categoryDefinitions[category];
+                var input = string.Join(", ", currentExts);
+                var dialog = new InputDialog($"编辑「{category}」的扩展名", "用逗号分隔，例如: .doc, .docx, .pdf", input);
+                if (dialog.ShowDialog() == true)
+                {
+                    var newExts = dialog.InputText
+                        .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                        .Select(x => x.Trim().ToLowerInvariant())
+                        .Where(x => !string.IsNullOrEmpty(x))
+                        .Select(x => x.StartsWith(".") ? x : "." + x)
+                        .Distinct()
+                        .ToList();
+                    _categoryDefinitions[category] = newExts;
+                }
+            });
+
+            // 恢复默认排除列表
+            RestoreDefaultExcludeCommand = new RelayCommand(_ =>
+            {
+                _excludePatterns = new List<string>(DefaultExcludePatterns);
+                IgnorePatternsText = string.Join(", ", _excludePatterns);
+                SyncExtensionsCheckState();
+            });
+
+            // 清空包含列表
+            ClearIncludeCommand = new RelayCommand(_ =>
+            {
+                _includePatterns = new List<string>();
+                IgnorePatternsText = "";
+                SyncExtensionsCheckState();
+            });
+
             SaveCommand = new RelayCommand(win =>
             {
-                // 同步扩展名到忽略模式
+                // 同步扩展名到当前模式的列表
                 if (Extensions.Count > 0) SyncExtensionsToIgnorePatterns();
+
+                // 保存当前文本到对应模式的列表
+                SaveCurrentPatternsToList();
+
+                // 同步 FilterMode 和两套列表到 Settings
+                Settings.FilterMode = IsExcludeMode ? Models.FilterMode.Exclude : Models.FilterMode.Include;
+                Settings.IgnorePatterns = new List<string>(_excludePatterns);
+                Settings.IncludePatterns = new List<string>(_includePatterns);
 
                 // 同步到 Settings
                 Settings.FolderPairs.Clear();
                 foreach (var item in FolderPairs)
                     Settings.FolderPairs.Add(new FolderPair { WatchFolder = item.WatchFolder, BackupFolder = item.BackupFolder });
-
-                // 解析忽略通配符
-                Settings.IgnorePatterns.Clear();
-                var parts = (IgnorePatternsText ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
-                foreach (var p in parts) { var t = p.Trim(); if (!string.IsNullOrEmpty(t)) Settings.IgnorePatterns.Add(t); }
 
                 // 解析忽略文件夹路径
                 Settings.IgnoredFolders.Clear();
@@ -443,6 +574,41 @@ namespace FileBackupMonitor.ViewModels
             return null;
         }
 
+        /// <summary>
+        /// 检查并修正开机自启注册表路径，确保路径与当前 exe 一致
+        /// </summary>
+        private void SyncAutoStartRegistry()
+        {
+            try
+            {
+                var currentExe = System.Reflection.Assembly.GetEntryAssembly()?.Location;
+                if (string.IsNullOrEmpty(currentExe)) return;
+
+                const string regKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
+                const string regValueName = "文件备份监控助手";
+
+                using (var rk = Registry.CurrentUser.OpenSubKey(regKeyPath, true))
+                {
+                    if (rk == null) return;
+
+                    var existingValue = rk.GetValue(regValueName) as string;
+                    var expectedValue = "\"" + currentExe + "\"";
+
+                    // 注册表里记录的是哪个 exe 路径开了自启
+                    // 当前 exe 路径与注册表匹配 → 勾选；不匹配 → 取消勾选
+                    if (string.Equals(existingValue, expectedValue, StringComparison.OrdinalIgnoreCase))
+                    {
+                        Settings.StartWithWindows = true;
+                    }
+                    else
+                    {
+                        Settings.StartWithWindows = false;
+                    }
+                }
+            }
+            catch (Exception ex) { FileLogger.LogError("检查开机自启注册表失败", ex); }
+        }
+
         private void ExtensionItem_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName == nameof(ExtensionItem.IsMonitored))
@@ -451,28 +617,55 @@ namespace FileBackupMonitor.ViewModels
 
         private void SyncExtensionsToIgnorePatterns()
         {
-            // 从 IgnorePatterns 中移除所有扫描到的扩展名规则
-            var scannedExts = new HashSet<string>(Extensions.Select(x => x.Extension), StringComparer.OrdinalIgnoreCase);
-            Settings.IgnorePatterns.RemoveAll(p =>
-            {
-                var t = p.Trim();
-                if (t.StartsWith("*."))
-                    return scannedExts.Contains(t.Substring(1));
-                if (t.StartsWith("*"))
-                    return scannedExts.Contains(t.Substring(1));
-                return false;
-            });
+            var currentList = _isExcludeMode ? _excludePatterns : _includePatterns;
 
-            // 添加未监控的扩展名
-            foreach (var item in Extensions.Where(x => !x.IsMonitored))
-            {
-                var pattern = "*" + item.Extension;
-                if (!Settings.IgnorePatterns.Any(p => p.Trim().Equals(pattern, StringComparison.OrdinalIgnoreCase)))
-                    Settings.IgnorePatterns.Add(pattern);
-            }
+            // 扫描到的所有扩展名（带 * 前缀）
+            var scannedExts = new HashSet<string>(
+                Extensions.Select(x => "*" + x.Extension),
+                StringComparer.OrdinalIgnoreCase);
+
+            // 1. 保留列表中不属于扫描范围的规则（用户手动输入的通配符等）
+            var preserved = currentList.Where(p => !scannedExts.Contains(p.Trim())).ToList();
+
+            // 2. 为扫描到的扩展名按当前勾选状态生成规则，保持扫描顺序
+            var extRules = Extensions
+                .Where(x => (_isExcludeMode && !x.IsMonitored) || (!_isExcludeMode && x.IsMonitored))
+                .Select(x => "*" + x.Extension)
+                .ToList();
+
+            // 3. 合并：保留的手动规则在前，扩展名规则在后
+            var newList = new List<string>();
+            newList.AddRange(preserved);
+            newList.AddRange(extRules);
+
+            // 更新原始列表
+            currentList.Clear();
+            currentList.AddRange(newList);
 
             // 同步到文本框
-            IgnorePatternsText = string.Join(", ", Settings.IgnorePatterns);
+            IgnorePatternsText = string.Join(", ", currentList);
+        }
+
+        /// <summary>根据当前模式的列表同步扩展名勾选框状态</summary>
+        private void SyncExtensionsCheckState()
+        {
+            if (Extensions.Count == 0) return;
+
+            var currentList = _isExcludeMode ? _excludePatterns : _includePatterns;
+            var patternExts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var p in currentList)
+            {
+                var t = p.Trim();
+                if (t.StartsWith("*.")) patternExts.Add(t.Substring(1));
+                else if (t.StartsWith("*")) patternExts.Add(t.Substring(1));
+            }
+
+            foreach (var item in Extensions)
+            {
+                item.IsMonitored = _isExcludeMode
+                    ? !patternExts.Contains(item.Extension) && !patternExts.Contains("*" + item.Extension)
+                    : patternExts.Contains(item.Extension) || patternExts.Contains("*" + item.Extension);
+            }
         }
 
         public event PropertyChangedEventHandler PropertyChanged;

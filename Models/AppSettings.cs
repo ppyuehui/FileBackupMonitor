@@ -5,6 +5,17 @@ using System.Text.Json.Serialization;
 namespace FileBackupMonitor.Models
 {
     /// <summary>
+    /// 文件过滤模式
+    /// </summary>
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public enum FilterMode
+    {
+        /// <summary>排除模式：匹配的文件不备份</summary>
+        Exclude,
+        /// <summary>包含模式：只有匹配的文件才备份</summary>
+        Include
+    }
+    /// <summary>
     /// 监控-备份文件夹对（一一对应）
     /// </summary>
     public class FolderPair
@@ -46,7 +57,11 @@ namespace FileBackupMonitor.Models
         [JsonPropertyName("isDarkTheme")]
         public bool IsDarkTheme { get; set; } = true;
 
-        /// <summary>忽略的文件名通配符列表</summary>
+        /// <summary>文件过滤模式：Exclude=排除匹配项，Include=只备份匹配项</summary>
+        [JsonPropertyName("filterMode")]
+        public FilterMode FilterMode { get; set; } = FilterMode.Exclude;
+
+        /// <summary>忽略的文件名通配符列表（排除模式使用）</summary>
         [JsonPropertyName("ignorePatterns")]
         public List<string> IgnorePatterns { get; set; } = new List<string>
         {
@@ -56,11 +71,15 @@ namespace FileBackupMonitor.Models
             "*.dyl", "*.dfm", "*.cod", "*.apprj", "*.co1", "*.co2", "*.edf",
             "*.nis", "*.ia1", "*.sum", "*.bks", "*.ia2", "*.ads", "*.dwl",
             "*.dwl2", "*.adv", "*.plf", "*.rp1", "*.rp2", "*.in0", "*.msh",
-            "*.odi", "*.bk$", "*.bak", "*.def",
+            "*.odi", "*.bk$", "*.bak",
             "*.asd", "*.xlk", "*.wbk", "~$*",
             "*.dll", "*.exe", "*.pdb", "*.pyc", "*.class", "*.o", "*.obj",
             "Thumbs.db", ".DS_Store",
         };
+
+        /// <summary>包含的文件名通配符列表（包含模式使用，只有匹配的文件才备份）</summary>
+        [JsonPropertyName("includePatterns")]
+        public List<string> IncludePatterns { get; set; } = new List<string>();
 
         /// <summary>忽略的文件夹路径列表（支持通配符）</summary>
         [JsonPropertyName("ignoredFolders")]
@@ -83,6 +102,7 @@ namespace FileBackupMonitor.Models
         public int LogRetentionDays { get; set; } = 10;
 
         /// <summary>最大备份日志条数</summary>
+        [JsonPropertyName("maxBackupLogs")]
         public int MaxBackupLogs { get; set; } = 1000;
     }
 }

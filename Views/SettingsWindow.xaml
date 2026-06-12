@@ -171,58 +171,166 @@
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0">
                         <TextBlock Text="文件格式监控" Foreground="{DynamicResource PrimaryText}" FontWeight="Medium"/>
-                        <TextBlock Text="扫描监控文件夹中的所有格式，勾选=监控，取消勾选=忽略"
+                        <TextBlock Text="排除模式：勾选的格式不备份；包含模式：只备份勾选的格式"
                                    Foreground="{DynamicResource SubtleText}" FontSize="11" TextWrapping="Wrap"/>
                     </StackPanel>
                     <Button Grid.Column="1" Content="🔍 扫描" Command="{Binding ScanExtensionsCommand}"
                             Style="{DynamicResource SecondaryButton}" Padding="14,6" VerticalAlignment="Center"/>
                 </Grid>
 
+                <!-- 模式切换 -->
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <RadioButton Content="排除模式" IsChecked="{Binding IsExcludeMode, Mode=TwoWay}"
+                                 Foreground="{DynamicResource PrimaryText}" Margin="0,0,16,0"
+                                 GroupName="FilterMode" VerticalContentAlignment="Center"/>
+                    <RadioButton Content="包含模式" IsChecked="{Binding IsIncludeMode, Mode=TwoWay}"
+                                 Foreground="{DynamicResource PrimaryText}" Margin="0,0,16,0"
+                                 GroupName="FilterMode" VerticalContentAlignment="Center"/>
+                    <Button Content="恢复默认" Command="{Binding RestoreDefaultExcludeCommand}"
+                            Style="{DynamicResource GhostButton}" Padding="10,4" FontSize="11"
+                            Visibility="{Binding IsExcludeMode, Converter={StaticResource BoolToVisibility}}"/>
+                    <Button Content="清空" Command="{Binding ClearIncludeCommand}"
+                            Style="{DynamicResource GhostButton}" Padding="10,4" FontSize="11"
+                            Visibility="{Binding IsIncludeMode, Converter={StaticResource BoolToVisibility}}"/>
+                </StackPanel>
+
                 <TextBlock Text="{Binding ExtensionScanStatus}" Foreground="{DynamicResource SubtleText}"
                            FontSize="11" Margin="0,0,0,6"/>
 
-                <!-- 分类快捷按钮 -->
+                <!-- 分类快捷按钮（右键可编辑扩展名） -->
                 <WrapPanel Margin="0,0,0,8">
                     <Button Content="📄 文档" Command="{Binding ApplyCategoryCommand}" CommandParameter="文档"
                             Padding="10,4" Margin="0,0,4,4" FontSize="11"
                             Foreground="{DynamicResource PrimaryText}" BorderThickness="1"
                             BorderBrush="{DynamicResource BorderBrush}"
-                            Background="{Binding ActiveCategories, Converter={StaticResource CategoryToBrush}, ConverterParameter=文档}"/>
+                            Background="{Binding ActiveCategories, Converter={StaticResource CategoryToBrush}, ConverterParameter=文档}"
+                            MouseRightButtonUp="CategoryButton_RightClick">
+                        <Button.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="编辑扩展名" Command="{Binding EditCategoryCommand}" CommandParameter="文档"/>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
                     <Button Content="🖼 图片" Command="{Binding ApplyCategoryCommand}" CommandParameter="图片"
                             Padding="10,4" Margin="0,0,4,4" FontSize="11"
                             Foreground="{DynamicResource PrimaryText}" BorderThickness="1"
                             BorderBrush="{DynamicResource BorderBrush}"
-                            Background="{Binding ActiveCategories, Converter={StaticResource CategoryToBrush}, ConverterParameter=图片}"/>
+                            Background="{Binding ActiveCategories, Converter={StaticResource CategoryToBrush}, ConverterParameter=图片}"
+                            MouseRightButtonUp="CategoryButton_RightClick">
+                        <Button.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="编辑扩展名" Command="{Binding EditCategoryCommand}" CommandParameter="图片"/>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
                     <Button Content="💻 源码" Command="{Binding ApplyCategoryCommand}" CommandParameter="源码"
                             Padding="10,4" Margin="0,0,4,4" FontSize="11"
                             Foreground="{DynamicResource PrimaryText}" BorderThickness="1"
                             BorderBrush="{DynamicResource BorderBrush}"
-                            Background="{Binding ActiveCategories, Converter={StaticResource CategoryToBrush}, ConverterParameter=源码}"/>
+                            Background="{Binding ActiveCategories, Converter={StaticResource CategoryToBrush}, ConverterParameter=源码}"
+                            MouseRightButtonUp="CategoryButton_RightClick">
+                        <Button.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="编辑扩展名" Command="{Binding EditCategoryCommand}" CommandParameter="源码"/>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
                     <Button Content="📦 压缩包" Command="{Binding ApplyCategoryCommand}" CommandParameter="压缩包"
                             Padding="10,4" Margin="0,0,4,4" FontSize="11"
                             Foreground="{DynamicResource PrimaryText}" BorderThickness="1"
                             BorderBrush="{DynamicResource BorderBrush}"
-                            Background="{Binding ActiveCategories, Converter={StaticResource CategoryToBrush}, ConverterParameter=压缩包}"/>
+                            Background="{Binding ActiveCategories, Converter={StaticResource CategoryToBrush}, ConverterParameter=压缩包}"
+                            MouseRightButtonUp="CategoryButton_RightClick">
+                        <Button.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="编辑扩展名" Command="{Binding EditCategoryCommand}" CommandParameter="压缩包"/>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
                     <Button Content="⚙️ 可执行文件" Command="{Binding ApplyCategoryCommand}" CommandParameter="可执行文件"
                             Padding="10,4" Margin="0,0,4,4" FontSize="11"
                             Foreground="{DynamicResource PrimaryText}" BorderThickness="1"
                             BorderBrush="{DynamicResource BorderBrush}"
-                            Background="{Binding ActiveCategories, Converter={StaticResource CategoryToBrush}, ConverterParameter=可执行文件}"/>
+                            Background="{Binding ActiveCategories, Converter={StaticResource CategoryToBrush}, ConverterParameter=可执行文件}"
+                            MouseRightButtonUp="CategoryButton_RightClick">
+                        <Button.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="编辑扩展名" Command="{Binding EditCategoryCommand}" CommandParameter="可执行文件"/>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
                     <Button Content="🎵 音视频" Command="{Binding ApplyCategoryCommand}" CommandParameter="音视频"
                             Padding="10,4" Margin="0,0,4,4" FontSize="11"
                             Foreground="{DynamicResource PrimaryText}" BorderThickness="1"
                             BorderBrush="{DynamicResource BorderBrush}"
-                            Background="{Binding ActiveCategories, Converter={StaticResource CategoryToBrush}, ConverterParameter=音视频}"/>
-                    <Button Content="🎨 设计软件" Command="{Binding ApplyCategoryCommand}" CommandParameter="常用设计软件"
+                            Background="{Binding ActiveCategories, Converter={StaticResource CategoryToBrush}, ConverterParameter=音视频}"
+                            MouseRightButtonUp="CategoryButton_RightClick">
+                        <Button.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="编辑扩展名" Command="{Binding EditCategoryCommand}" CommandParameter="音视频"/>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
+                    <Button Content="🎨 设计软件" Command="{Binding ApplyCategoryCommand}" CommandParameter="设计软件"
                             Padding="10,4" Margin="0,0,4,4" FontSize="11"
                             Foreground="{DynamicResource PrimaryText}" BorderThickness="1"
                             BorderBrush="{DynamicResource BorderBrush}"
-                            Background="{Binding ActiveCategories, Converter={StaticResource CategoryToBrush}, ConverterParameter=常用设计软件}"/>
+                            Background="{Binding ActiveCategories, Converter={StaticResource CategoryToBrush}, ConverterParameter=设计软件}"
+                            MouseRightButtonUp="CategoryButton_RightClick">
+                        <Button.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="编辑扩展名" Command="{Binding EditCategoryCommand}" CommandParameter="设计软件"/>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
+                    <Button Content="🔧 工程软件" Command="{Binding ApplyCategoryCommand}" CommandParameter="工程软件"
+                            Padding="10,4" Margin="0,0,4,4" FontSize="11"
+                            Foreground="{DynamicResource PrimaryText}" BorderThickness="1"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            Background="{Binding ActiveCategories, Converter={StaticResource CategoryToBrush}, ConverterParameter=工程软件}"
+                            MouseRightButtonUp="CategoryButton_RightClick">
+                        <Button.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="编辑扩展名" Command="{Binding EditCategoryCommand}" CommandParameter="工程软件"/>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
+                    <Button Content="🗄 数据库" Command="{Binding ApplyCategoryCommand}" CommandParameter="数据库"
+                            Padding="10,4" Margin="0,0,4,4" FontSize="11"
+                            Foreground="{DynamicResource PrimaryText}" BorderThickness="1"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            Background="{Binding ActiveCategories, Converter={StaticResource CategoryToBrush}, ConverterParameter=数据库}"
+                            MouseRightButtonUp="CategoryButton_RightClick">
+                        <Button.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="编辑扩展名" Command="{Binding EditCategoryCommand}" CommandParameter="数据库"/>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
                     <Button Content="🗑 临时文件" Command="{Binding ApplyCategoryCommand}" CommandParameter="临时文件"
                             Padding="10,4" Margin="0,0,4,4" FontSize="11"
                             Foreground="{DynamicResource PrimaryText}" BorderThickness="1"
                             BorderBrush="{DynamicResource BorderBrush}"
-                            Background="{Binding ActiveCategories, Converter={StaticResource CategoryToBrush}, ConverterParameter=临时文件}"/>
+                            Background="{Binding ActiveCategories, Converter={StaticResource CategoryToBrush}, ConverterParameter=临时文件}"
+                            MouseRightButtonUp="CategoryButton_RightClick">
+                        <Button.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="编辑扩展名" Command="{Binding EditCategoryCommand}" CommandParameter="临时文件"/>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
+                    <Button Content="🔧 辉哥软件" Command="{Binding ApplyCategoryCommand}" CommandParameter="辉哥软件"
+                            Padding="10,4" Margin="0,0,4,4" FontSize="11"
+                            Foreground="{DynamicResource PrimaryText}" BorderThickness="1"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            Background="{Binding ActiveCategories, Converter={StaticResource CategoryToBrush}, ConverterParameter=辉哥软件}"
+                            MouseRightButtonUp="CategoryButton_RightClick">
+                        <Button.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="编辑扩展名" Command="{Binding EditCategoryCommand}" CommandParameter="辉哥软件"/>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
                 </WrapPanel>
 
                 <Border Background="{DynamicResource InputBackground}" CornerRadius="6"

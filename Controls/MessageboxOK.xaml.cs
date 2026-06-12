@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 
 namespace MyMessagebox.Controls
 {
@@ -7,7 +7,7 @@ namespace MyMessagebox.Controls
     /// </summary>
     public partial class MessageboxOK : Window
     {
-        public double FontSize { get; set; } = 14;
+        public new double FontSize { get; set; } = 14;
         public MessageboxOK()
         {
             InitializeComponent();

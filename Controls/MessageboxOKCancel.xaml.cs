@@ -1,10 +1,10 @@
-﻿using System.Windows;
+using System.Windows;
 
 namespace MyMessagebox.Controls
 {
     public partial class MessageboxOKCancel : Window
     {
-        public double FontSize { get; set; } = 14;  // 添加字体大小属性
+        public new double FontSize { get; set; } = 14;  // 添加字体大小属性
         public MessageboxOKCancel()
         {
             InitializeComponent();
