@@ -14,25 +14,27 @@
 - **实时文件夹监控**：使用 `FileSystemWatcher` 监控文件创建、修改、重命名事件
 - **自动备份**：检测到变化时自动复制文件到指定备份目录，保留原始目录结构
 - **智能重名处理**：备份文件名冲突时自动重命名（`_1`, `_2`...），不覆盖历史版本
-- **按需日志窗口**：实时日志窗口只在打开时订阅事件，关闭时释放资源，零性能浪费
-- **错误日志持久化**：所有异常自动记录到 `%TEMP%\文件备份监控助手log\`，保留 7 天
+- **多文件夹对**：支持同时监控多组文件夹，每对独立运作
+- **批量导入**：支持批量导入文件夹对（`|`、`→`、`->`、Tab 分隔）
+
+### 文件过滤
+- **双模式过滤**：排除模式（排除匹配项）/ 包含模式（只备份匹配项）
+- **分类快捷勾选**：文档、图片、源码、压缩包、音视频、工程软件、辉哥软件、数据库、临时文件
+- **分类扩展名持久化**：分类定义保存到 `categories.json`，右键可编辑，修改后自动保存
+- **恢复默认**：排除模式下一键恢复默认排除列表；包含模式下一键清空
+- **恢复所有分类**：一键恢复所有分类扩展名到默认值，弹窗显示具体变更
+- **扩展名扫描**：扫描监控目录，列出所有文件格式及数量，按需勾选
 
 ### 用户体验
-- **MahApps.Metro 风格界面**：现代化 UI，支持深色/浅色主题切换
-- **左设计右图表布局**：左侧参数配置，右侧实时监控图表
-- **三列数据对比**：支持 100% 负荷、最低负荷、最高负荷三工况对比显示
+- **深色/浅色主题**：支持主题切换，UI 全面适配两种模式
 - **托盘运行**：最小化到系统托盘，后台静默监控
-- **实时筛选**：按备份/重命名/新文件/错误等类型过滤日志
+- **开机自启**：注册表路径与当前 exe 绑定，换位置后自动识别
+- **实时日志窗口**：按需打开，支持按类型筛选（备份/重命名/新文件/错误）
+- **中文支持**：配置文件和日志文件直接显示中文
 
 ---
 
 ## 🏗️ 技术架构
-
-### 架构原则
-- **功能分离**：文件名忽略规则与文件夹路径忽略规则独立配置，互不干扰
-- **按需订阅**：事件监听器仅在 UI 打开时激活，关闭时立即释放（`IDisposable` 模式）
-- **线程安全**：`LogService` 使用 `lock` 确保多线程写入 JSONL 日志文件安全
-- **资源安全**：所有 `FileStream`/`StreamWriter` 使用 `using` 语句包装，杜绝泄漏
 
 ### 技术栈
 | 组件 | 说明 |
@@ -40,35 +42,27 @@
 | **.NET Framework 4.8** | Windows 桌面应用框架 |
 | **WPF + MVVM** | 界面与逻辑分离 |
 | **FileSystemWatcher** | 实时文件系统事件监控 |
-| **System.Text.Json** | JSONL 格式日志序列化 |
+| **System.Text.Json** | JSON 序列化（支持中文直接显示） |
 | **Costura.Fody** | 依赖项嵌入（单文件发布） |
-| **Logging 类库** | 独立的错误日志组件（`FileLogger`） |
 
 ### 关键设计
 
-#### 1. 双层日志系统
-- **实时日志 (`OnLog` 事件)**: 推送到 UI 显示，仅内存存储，窗口关闭后清空
-- **错误日志 (`FileLogger`)**: 独立写入 `%TEMP%\文件备份监控助手log\YYYY-MM-DD.log`，持久化保存
-- **备份记录 (`LogService`)**: JSONL 格式保存到 `%APPDATA%\文件备份监控助手\logs\logs.jsonl`
+#### 1. 三层配置持久化
+| 文件 | 路径 | 内容 |
+|------|------|------|
+| `settings.json` | `%AppData%\文件备份监控助手\` | 主配置（文件夹对、过滤规则、主题等） |
+| `categories.json` | `%AppData%\文件备份监控助手\` | 分类扩展名定义（可编辑、可恢复默认） |
+| `logs.jsonl` | `%AppData%\文件备份监控助手\logs\` | 备份记录（JSONL 格式） |
 
-#### 2. 事件驱动模型
-```csharp
-// BackupService 触发事件
-public event Action<string> OnLog;
+#### 2. 开机自启逻辑
+- 启动时读取注册表 `HKCU\...\Run\文件备份监控助手`
+- 比较注册表路径与当前 exe 路径
+- 匹配 → 勾选；不匹配 → 取消勾选
+- 保存时写入/删除注册表项
 
-// LogViewModel 订阅（窗口打开时）
-_backupService.OnLog += OnLogReceived;
-
-// 窗口关闭时释放
-public void Dispose() => _backupService?.OnLog -= OnLogReceived;
-```
-
-#### 3. 日志文件结构
-```jsonl
-{"timeStamp":"14:30:22","message":"✅ 开始监控: C:\\Data","type":"Backup","color":"#A3EEA3"}
-{"timeStamp":"14:31:05","message":"📝 检测到新文件: report.pdf","type":"NewFile","color":"#FFEAA7"}
-{"timeStamp":"14:31:12","message":"❌ 备份失败: report.pdf - 文件被占用","type":"Error","color":"#FF8080"}
-```
+#### 3. 双层日志系统
+- **实时日志 (`OnLog` 事件)**：推送到 UI 显示，窗口关闭后清空
+- **备份记录 (`LogService`)**：JSONL 格式持久化到 AppData
 
 ---
 
@@ -76,32 +70,30 @@ public void Dispose() => _backupService?.OnLog -= OnLogReceived;
 
 ```
 FileBackupMonitor/
-├── Logging/                          # 独立日志库项目
-│   ├── FileLogger.cs                 # 静态错误日志器（Temp 目录）
-│   └── Logging.csproj
 ├── Views/                            # WPF 视图层
 │   ├── MainWindow.xaml/.cs           # 主界面（托盘、监控控制）
-│   ├── LogWindow.xaml/.cs            # 实时日志窗口（按需显示）
-│   └── SettingsWindow.xaml/.cs       # 设置界面
+│   ├── LogWindow.xaml/.cs            # 实时日志窗口
+│   ├── SettingsWindow.xaml/.cs       # 设置界面
+│   └── InputDialog.xaml/.cs          # 输入对话框（编辑分类扩展名）
 ├── ViewModels/                       # MVVM 视图模型
 │   ├── MainViewModel.cs              # 主界面逻辑
 │   ├── LogViewModel.cs               # 日志筛选、自动滚动
-│   └── SettingsViewModel.cs          # 设置项绑定
+│   └── SettingsViewModel.cs          # 设置项绑定、分类管理
 ├── Services/                         # 业务逻辑层
-│   ├── BackupService.cs              # 核心监控服务（FileSystemWatcher）
+│   ├── BackupService.cs              # 核心监控服务
 │   ├── LogService.cs                 # 持久化日志（JSONL）
-│   └── SettingsService.cs            # 配置读写
+│   └── SettingsService.cs            # 配置读写（settings.json + categories.json）
 ├── Models/                           # 数据模型
-│   ├── BackupLogEntry.cs             # 备份记录
-│   ├── LogEntry.cs                   # 实时日志条目
-│   └── AppSettings.cs                # 应用配置
-├── Controls/                         # 自定义控件
-│   └── MessageboxYesNoCancel.xaml/.cs
+│   ├── AppSettings.cs                # 应用配置
+│   └── BackupLogEntry.cs             # 备份记录
+├── Converters/                       # XAML 转换器
+│   └── Converters.cs                 # BoolToVisibility、CategoryToBrush 等
 ├── Themes/                           # UI 主题
-│   ├── DarkTheme.xaml
-│   └── LightTheme.xaml
-├── bin/                              # 编译输出
-│   └── Debug/
+│   ├── DarkTheme.xaml                # 深色主题
+│   ├── LightTheme.xaml               # 浅色主题
+│   └── ThemeStyles.xaml              # 公共样式（按钮、输入框等）
+├── Controls/                         # 自定义控件
+│   └── Messagebox*.xaml/.cs          # 消息框控件
 └── 文件备份监控助手.csproj           # 主项目文件
 ```
 
@@ -111,120 +103,64 @@ FileBackupMonitor/
 
 ### 环境要求
 - Windows 10 / 11
-- .NET Framework 4.8（已包含在 Windows 10 1809+）
-- 至少 50MB 可用磁盘空间
+- .NET Framework 4.8
 
 ### 编译运行
 ```powershell
-# 1. 克隆项目
-git clone https://github.com/ppyuehui/FileBackupMonitor.git
-cd 文件备份监控助手
+# 1. 克隆项目（含子模块）
+git clone --recursive https://github.com/ppyuehui/FileBackupMonitor.git
+cd FileBackupMonitor
 
-# 2. 恢复 NuGet 包（需要 Visual Studio 或 msbuild）
-nuget restore 文件备份监控助手.csproj
-
-# 3. 编译
+# 2. 编译（需要 Visual Studio MSBuild）
 msbuild 文件备份监控助手.csproj /p:Configuration=Debug
 
-# 4. 运行
+# 3. 运行
 .\bin\Debug\文件备份监控助手.exe
 ```
-
-
-## 📦 依赖
-
-本项目使用 Git 子模块管理 `Logging` 依赖库：
-
-### 克隆包含子模块的仓库
-```powershell
-# 必须加上 --recursive
-git clone --recursive https://github.com/ppyuehui/FileBackupMonitor.git
-cd file-backup-monitor
-```
-
-### 已有仓库，拉取子模块
-```bash
-git submodule update --init --recursive
-```
-
-### Logging 库独立仓库
-- 仓库地址：https://github.com/ppyuehui/Logging 
-- 用途：提供 `FileLogger` 静态日志类，独立于主应用
-
-### 首次使用
-1. **设置监控目录**：点击「浏览」选择要监控的文件夹
-2. **设置备份目录**：选择备份文件保存位置（建议不同磁盘）
-3. **设置忽略规则**：
-   - 文件名忽略（支持通配符 `*.tmp`, `~*`）
-   - 文件夹路径忽略（如 `C:\Data\Temp\`）
-4. 点击「开始监控」，最小化到托盘即可后台运行
-5. 需要查看日志时，点击托盘图标 → 「打开日志窗口」
 
 ---
 
 ## ⚙️ 配置说明
 
-### `AppSettings.json`（自动生成于 `%APPDATA%\文件备份监控助手\`）
-```json
-{
-  "SourceFolder": "C:\\Data",
-  "BackupFolder": "D:\\Backup",
-  "FileNameIgnorePatterns": ["*.tmp", "~*", "*.log"],
-  "FolderIgnorePatterns": ["C:\\Data\\Temp"],
-  "MaxBackupLogs": 100,
-  "Theme": "Dark"
-}
-```
+### 过滤模式
+| 模式 | 说明 |
+|------|------|
+| **排除模式** | 匹配的文件不备份（默认），可点击「恢复默认」还原 |
+| **包含模式** | 只有匹配的文件才备份，可点击「清空」清除所有规则 |
 
-### 忽略规则语法
-| 规则类型 | 示例 | 说明 |
-|---------|------|------|
-| 文件名忽略 | `*.tmp` | 所有临时文件不备份 |
-| 文件名忽略 | `~*` | 所有临时文件（Office 锁定文件） |
-| 文件夹忽略 | `C:\Temp\` | 完整路径匹配 |
-| 文件夹忽略 | `*\Temp\*` | 任意位置的 Temp 文件夹 |
+### 分类扩展名
+默认分类定义保存在 `%AppData%\文件备份监控助手\categories.json`，支持：
+- 右键编辑分类扩展名（自动保存）
+- 点击「恢复所有分类拓展名」恢复默认值
+
+### 忽略文件夹
+支持通配符，用逗号分隔：
+- `.vs`, `.git`, `node_modules`, `__pycache__`, `obj`, `.idea`, `.svn`, `bin`
 
 ---
 
-## 🐛 已知问题与限制
+## 📝 更新日志
 
-### 当前限制
-- **仅支持 Windows**：基于 `FileSystemWatcher` 和 WinForms 托盘图标
-- **单实例运行**：通过 Mutex 保证只有一个监控实例
-- **网络路径延迟**：UNC 路径（`\\server\share`）可能触发延迟事件
-- **长路径支持**：需要 Windows 10 1607+ 启用长路径策略
-
-### 性能考虑
-- 监控文件数建议 < 10,000，避免内存无限增长
-- 实时日志窗口限制显示最近 2000 条（可配置）
-- 备份日志文件自动轮转（保留最近 100 条）
-
----
-
-## 📝 开发日志
+### v1.1.0（2026-06）
+- ✅ 分类扩展名持久化到 `categories.json`
+- ✅ 新增「恢复所有分类拓展名」按钮，显示变更详情
+- ✅ 排除模式「恢复默认」/ 包含模式「清空」按钮
+- ✅ 分类按钮扫描前隐藏，扫描后才显示
+- ✅ 深色/浅色模式 UI 全面适配
+- ✅ JSON 文件中文直接显示（`UnsafeRelaxedJsonEscaping`）
+- ✅ 开机自启注册表路径与 exe 绑定
+- ✅ 清理重复排除规则、修复编译警告
 
 ### v1.0.0（2026-04）
 - ✅ 初始版本发布
 - ✅ 基础文件监控与自动备份
 - ✅ 实时日志窗口（按需显示 + 资源释放）
-- ✅ 错误日志持久化（独立 FileLogger）
-- ✅ JSONL 格式备份记录
-- ✅ 文件夹忽略与文件名ignore功能分离
+- ✅ 双模式文件过滤（排除/包含）
+- ✅ 多文件夹对支持
+- ✅ 批量导入文件夹对
 
 ---
 
 ## 📄 许可证
 
 本项目采用 **MIT 许可证**，详见 [LICENSE](LICENSE) 文件。
-
----
-
-## 🙏 致谢
-
-- [MahApps.Metro](https://mahapps.com/) - WPF 现代化 UI 框架
-- [Costura.Fody](https://github.com/Fody/Costura) - 依赖嵌入解决方案
-- [FileSystemWatcher](https://docs.microsoft.com/dotnet/api/system.io.filesystemwatcher) - .NET 文件监控 API
-
----
-
-**注意**：本项目仅供个人/小团队内部使用，请勿用于非法监控或侵犯隐私的场景。使用前请确保遵守当地法律法规。
