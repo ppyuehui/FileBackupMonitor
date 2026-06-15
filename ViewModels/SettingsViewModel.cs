@@ -87,6 +87,7 @@ namespace FileBackupMonitor.ViewModels
         public ICommand EditCategoryCommand { get; }
         public ICommand RestoreDefaultExcludeCommand { get; }
         public ICommand ClearIncludeCommand { get; }
+        public ICommand ResetAllCategoriesCommand { get; }
 
         private static readonly List<string> DefaultExcludePatterns = new List<string>
         {
@@ -165,17 +166,19 @@ namespace FileBackupMonitor.ViewModels
                 .ToList();
         }
 
-        /// <summary>分类定义（可编辑）</summary>
-        private readonly Dictionary<string, List<string>> _categoryDefinitions = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase)
+        /// <summary>分类定义（可编辑，从文件加载）</summary>
+        private readonly Dictionary<string, List<string>> _categoryDefinitions;
+
+        /// <summary>默认分类定义（文件不存在时使用）</summary>
+        private static readonly Dictionary<string, List<string>> DefaultCategoryDefinitions = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase)
         {
-            ["文档"] = new List<string> { ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".pdf", ".txt", ".rtf", ".csv", ".odt", ".ods", ".odp", ".wps", ".et", ".dps", ".md", ".log", ".ini", ".cfg", ".conf", ".properties" },
+            ["文档"] = new List<string> { ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".pdf", ".txt", ".rtf", ".csv", ".wps", ".et", ".md", ".caj", ".xlsm" },
             ["图片"] = new List<string> { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".ico", ".tiff", ".tif", ".webp", ".svg", ".psd", ".ai", ".raw", ".cr2", ".nef", ".heic", ".heif", ".eps", ".emf", ".wmf", ".pcx", ".tga", ".dds" },
             ["源码"] = new List<string> { ".cs", ".vb", ".js", ".ts", ".py", ".java", ".c", ".cpp", ".h", ".hpp", ".csproj", ".sln", ".xaml", ".xml", ".json", ".yaml", ".yml", ".html", ".css", ".sql", ".sh", ".bat", ".ps1", ".go", ".rs", ".swift", ".kt", ".rb", ".php", ".vue", ".jsx", ".tsx", ".scss", ".less", ".sass" },
             ["压缩包"] = new List<string> { ".zip", ".rar", ".7z", ".iso" },
             ["可执行文件"] = new List<string> { ".msi", ".com", ".cmd" },
             ["音视频"] = new List<string> { ".mp3", ".mp4", ".wav", ".avi", ".mkv", ".flac", ".aac", ".ogg", ".wma", ".mov", ".wmv", ".flv", ".m4a", ".m4v", ".webm", ".3gp", ".rmvb", ".ts" },
-            ["设计软件"] = new List<string> { ".psd", ".ai", ".sketch", ".dwg", ".dxf", ".rft" },
-            ["工程软件"] = new List<string> { ".apw", ".apwz", ".prz", ".dwg", ".htri", ".edr", ".eddx", ".sulcol", ".kgt" },
+            ["工程软件"] = new List<string> { ".apw", ".apwz", ".prz", ".dwg", ".htri", ".edr", ".eddx", ".sulcol", ".kgt", ".bkp", ".pak", ".drawio", ".vsdx", ".hsc", ".apj", ".vsd", ".nwd", ".psd", ".ai", ".sketch", ".dxf", ".rft" },
             ["辉哥软件"] = new List<string> { ".hui", ".huix", ".huij", ".huiw", ".az", ".rs" },
             ["数据库"] = new List<string> { ".db", ".sqlite", ".sqlite3", ".mdb", ".accdb", ".sql", ".mdf", ".ldf", ".dbf", ".gdb" },
             ["临时文件"] = new List<string> { ".cache", ".swp", ".old", ".orig", ".sav", ".autosave" },
@@ -212,6 +215,13 @@ namespace FileBackupMonitor.ViewModels
             set { _extensionScanStatus = value; OnPropertyChanged(); }
         }
 
+        private bool _hasScannedExtensions;
+        public bool HasScannedExtensions
+        {
+            get => _hasScannedExtensions;
+            set { _hasScannedExtensions = value; OnPropertyChanged(); }
+        }
+
         private readonly HashSet<string> _activeCategorySet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>排除模式下的扩展名列表</summary>
@@ -223,6 +233,10 @@ namespace FileBackupMonitor.ViewModels
         {
             _original = source;
             _logService = logService;
+
+            // 从文件加载分类定义，文件不存在则使用默认值
+            _categoryDefinitions = Services.SettingsService.LoadCategories()
+                ?? new Dictionary<string, List<string>>(DefaultCategoryDefinitions, StringComparer.OrdinalIgnoreCase);
 
             Settings = new Models.AppSettings
             {
@@ -406,6 +420,7 @@ namespace FileBackupMonitor.ViewModels
                             Extensions.Add(item);
                         }
                         ExtensionScanStatus = $"共扫描到 {allExtensions.Count} 种格式";
+                        HasScannedExtensions = true;
                     });
                 });
             });
@@ -474,6 +489,7 @@ namespace FileBackupMonitor.ViewModels
                         .Distinct()
                         .ToList();
                     _categoryDefinitions[category] = newExts;
+                    Services.SettingsService.SaveCategories(_categoryDefinitions);
                 }
             });
 
@@ -491,6 +507,51 @@ namespace FileBackupMonitor.ViewModels
                 _includePatterns = new List<string>();
                 IgnorePatternsText = "";
                 SyncExtensionsCheckState();
+            });
+
+            // 恢复所有分类拓展名
+            ResetAllCategoriesCommand = new RelayCommand(_ =>
+            {
+                var changes = new List<string>();
+
+                // 收集变更：删除当前有但默认没有的分类
+                foreach (var key in _categoryDefinitions.Keys.ToList())
+                {
+                    if (!DefaultCategoryDefinitions.ContainsKey(key))
+                        changes.Add($"删除分类「{key}」");
+                }
+
+                // 收集变更：每个分类的扩展名增减
+                foreach (var kv in DefaultCategoryDefinitions)
+                {
+                    var catName = kv.Key;
+                    var defaultExts = new HashSet<string>(kv.Value, StringComparer.OrdinalIgnoreCase);
+
+                    if (_categoryDefinitions.ContainsKey(catName))
+                    {
+                        var currentExts = new HashSet<string>(_categoryDefinitions[catName], StringComparer.OrdinalIgnoreCase);
+                        var added = defaultExts.Where(e => !currentExts.Contains(e)).ToList();
+                        var removed = currentExts.Where(e => !defaultExts.Contains(e)).ToList();
+                        if (added.Count > 0) changes.Add($"「{catName}」新增: {string.Join(", ", added)}");
+                        if (removed.Count > 0) changes.Add($"「{catName}」删除: {string.Join(", ", removed)}");
+                    }
+                    else
+                    {
+                        changes.Add($"新增分类「{catName}」");
+                    }
+                }
+
+                // 执行恢复
+                _categoryDefinitions.Clear();
+                foreach (var kv in DefaultCategoryDefinitions)
+                    _categoryDefinitions[kv.Key] = new List<string>(kv.Value);
+                Services.SettingsService.SaveCategories(_categoryDefinitions);
+
+                // 显示变更提示
+                if (changes.Count > 0)
+                    MyMessageBox.Show("已恢复默认分类拓展名\n\n" + string.Join("\n", changes), "变更内容");
+                else
+                    MyMessageBox.Show("所有分类拓展名已是默认值，无需修改", "提示");
             });
 
             SaveCommand = new RelayCommand(win =>

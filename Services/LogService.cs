@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using FileBackupMonitor.Models;
 using Logging;
@@ -56,7 +57,11 @@ namespace FileBackupMonitor.Services
                 try { TrimIfNeeded(); } catch (Exception ex) { FileLogger.LogError("在写入前检查是否需要裁剪", ex); }
 
                 // 将日志条目序列化为JSON格式
-                var json = JsonSerializer.Serialize(entry, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+                var json = JsonSerializer.Serialize(entry, new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+                });
                 // 使用锁确保线程安全
                 lock (_lock)
                 {
@@ -82,25 +87,29 @@ namespace FileBackupMonitor.Services
                 // 如果日志文件不存在，直接返回
                 if (!File.Exists(_logFile)) return;
                 
-                // 获取所有日志行
-                var lines = File.ReadAllLines(_logFile);
-
                 // 使用配置中的备份日志数量
                 var maxBackupLogs = _settings?.MaxBackupLogs ?? 100;
-
-                if (lines.Length > maxBackupLogs)
+                
+                // 使用队列只保留最后maxBackupLogs行，避免读取整个文件
+                var queue = new Queue<string>();
+                using (var fs = new FileStream(_logFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                using (var sr = new StreamReader(fs))
                 {
-                    var linesToKeep = lines.Skip(lines.Length - maxBackupLogs).ToArray();
+                    string line;
+                    while ((line = sr.ReadLine()) != null)
+                    {
+                        queue.Enqueue(line);
+                        if (queue.Count > maxBackupLogs)
+                            queue.Dequeue();
+                    }
+                }
+                
+                // 如果行数超过限制，重写文件
+                if (queue.Count > 0)
+                {
+                    var linesToKeep = queue.ToArray();
                     File.WriteAllLines(_logFile, linesToKeep);
                 }
-                //// 如果当前条目数小于限制，直接返回
-                //if (lines.Length < MaxLogEntries) return;
-
-                //// 计算需要保留的行数（最新的MaxLogEntries行）
-                //var linesToKeep = lines.Skip(lines.Length - MaxLogEntries).ToArray();
-
-                //// 重写日志文件，只保留最新的MaxLogEntries行
-                //File.WriteAllLines(_logFile, linesToKeep);
             }
             catch (Exception ex) { FileLogger.LogError("裁剪日志文件", ex); } 
         }
@@ -212,7 +221,7 @@ namespace FileBackupMonitor.Services
                             count++;
                             size += fi.Length;
                         }
-                        catch { }
+                        catch (Exception ex) { FileLogger.LogError("获取文件信息失败: " + file, ex); }
                     }
                 }
                 catch (Exception ex) { FileLogger.LogError("Scan backup folder failed: " + backupFolder, ex); }
