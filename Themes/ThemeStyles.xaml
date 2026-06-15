@@ -80,10 +80,10 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="bg" Property="Background" Value="#22FFFFFF"/>
+                            <Setter TargetName="bg" Property="Background" Value="{DynamicResource HoverOverlay}"/>
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="bg" Property="Background" Value="#33FFFFFF"/>
+                            <Setter TargetName="bg" Property="Background" Value="{DynamicResource PressOverlay}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -111,10 +111,10 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="bg" Property="Background" Value="#15FFFFFF"/>
+                            <Setter TargetName="bg" Property="Background" Value="{DynamicResource HoverOverlayLight}"/>
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="bg" Property="Background" Value="#22FFFFFF"/>
+                            <Setter TargetName="bg" Property="Background" Value="{DynamicResource HoverOverlay}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -139,7 +139,7 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="bg" Property="Background" Value="#15FFFFFF"/>
+                            <Setter TargetName="bg" Property="Background" Value="{DynamicResource HoverOverlayLight}"/>
                             <Setter Property="Foreground" Value="{DynamicResource PrimaryText}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
@@ -200,7 +200,7 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="#10FFFFFF"/>
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource HoverOverlayLight}"/>
                         </Trigger>
                         <Trigger Property="IsSelected" Value="True">
                             <Setter TargetName="Bd" Property="Background" Value="#157C3AED"/>
@@ -323,10 +323,10 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="bg" Property="Background" Value="#25FFFFFF"/>
+                            <Setter TargetName="bg" Property="Background" Value="{DynamicResource HoverOverlay}"/>
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="bg" Property="Background" Value="#35FFFFFF"/>
+                            <Setter TargetName="bg" Property="Background" Value="{DynamicResource PressOverlay}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -347,10 +347,10 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="bg" Property="Background" Value="#40FFFFFF"/>
+                            <Setter TargetName="bg" Property="Background" Value="{DynamicResource HoverOverlayStrong}"/>
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="bg" Property="Background" Value="#50FFFFFF"/>
+                            <Setter TargetName="bg" Property="Background" Value="{DynamicResource PressOverlay}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

@@ -21,4 +21,10 @@
     <SolidColorBrush x:Key="AccentButtonText" Color="#1E293B"/>
     <SolidColorBrush x:Key="AccentButtonBorder" Color="#CBD5E180"/>
 
+    <!-- 悬停/按下叠加色（浅色模式用深色叠加） -->
+    <SolidColorBrush x:Key="HoverOverlay" Color="#10000000"/>
+    <SolidColorBrush x:Key="PressOverlay" Color="#20000000"/>
+    <SolidColorBrush x:Key="HoverOverlayLight" Color="#08000000"/>
+    <SolidColorBrush x:Key="HoverOverlayStrong" Color="#18000000"/>
+
 </ResourceDictionary>
